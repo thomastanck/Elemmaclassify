@@ -1,0 +1,3 @@
+[submodule "E_conj"]
+	path = E_conj
+	url = git@github.com:JUrban/E_conj.git
