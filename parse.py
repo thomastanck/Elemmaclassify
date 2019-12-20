@@ -1,4 +1,11 @@
 import parsy as p
+import collections
+
+Var = collections.namedtuple('Var', ['name'])
+Const = collections.namedtuple('Const', ['name'])
+Func = collections.namedtuple('Func', ['funcname', 'args'])
+Eq = collections.namedtuple('Eq', ['pos', 't1', 't2'])
+Disj = collections.namedtuple('Disj', ['eqs'])
 
 def symbol(s):
     return p.whitespace.many() >> p.string(s) << p.whitespace.many()
@@ -41,34 +48,73 @@ formula_role = p.string_from(
     'fi_predicates',
     'unknown')
 
-constant = lower_word | p.string('$') + lower_word | p.string('$$') + lower_word
-variable = upper_word
+constant = (lower_word | p.string('$') + lower_word | p.string('$$') + lower_word).map(Const)
+variable = upper_word.map(Var)
+
+def parenthesised(parser):
+    @p.generate
+    def a():
+        # Handle parenthesised terms
+        if (yield symbol('(').optional()):
+            t = yield a
+            yield symbol(')')
+            return t
+        else:
+            return (yield parser)
+    return a
+
 
 @p.generate
 def fof_term():
     v = yield variable.optional()
     if v:
         return v
+
     c = yield constant
+
     if not (yield symbol('(').optional()):
         return c
+
     args = yield function_args
     yield symbol(')')
-    return [c, *args]
+    return Func(c.name, args)
+
+fof_term = parenthesised(fof_term)
 
 function_args = fof_term.sep_by(symbol(','))
 
-fof_neg_eqn = p.seq(fof_term, symbol('!='), fof_term).combine(lambda a, b, c: (b, a, c))
-fof_eqn     = p.seq(fof_term, symbol('='), fof_term).combine(lambda a, b, c: (b, a, c))
-
-literal = (p.seq(symbol('~').optional(), fof_eqn).combine(lambda a, b: b if a is None else (a, b)) |
-           fof_neg_eqn |
-           fof_term.map(lambda t: ('=', t, '$true')))
+@p.generate
+def literal():
+    n = yield symbol('~').optional()
+    t = yield fof_term
+    eq = yield (symbol('=')|symbol('!=')).optional()
+    if eq is None:
+        if n:
+            return Eq(False, t, '$true')
+        else:
+            return Eq(True, t, '$true')
+    else:
+        pos = n == (eq == '!=')
+        t2 = yield fof_term
+        return Eq(pos, t, t2)
+literal = parenthesised(literal)
 
 disjunction = literal.sep_by(symbol('|'))
 
-cnf_formula = disjunction | symbol('(') >> disjunction << symbol(')')
+cnf_formula = parenthesised(disjunction)
 
 cnf_annotated = (symbol('cnf') >> symbol('(') >>
-    p.seq(name, symbol(',') >> formula_role, symbol(',') >> cnf_formula)
+    p.seq(name, symbol(',') >> formula_role, symbol(',') >> cnf_formula).map(tuple)
     << symbol(')') << symbol('.'))
+
+def parse_cnf_file(s):
+    # Filter out comments
+    s = '\n'.join(l for l in s.split('\n') if not l.startswith('#'))
+    print(s)
+    return cnf_annotated.many().parse(s)
+
+# with open('E_conj/problems/l100_fomodel0', 'r') as f:
+#     s = f.read()
+#     a = parse_cnf_file(s)
+#     print('\n'.join(map(str, a)))
+
