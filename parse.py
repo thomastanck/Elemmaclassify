@@ -1,14 +1,22 @@
 import parsy as p
 import collections
 
-Var = collections.namedtuple('Var', ['name'])
-Const = collections.namedtuple('Const', ['name'])
-Func = collections.namedtuple('Func', ['funcname', 'args'])
-Eq = collections.namedtuple('Eq', ['pos', 't1', 't2'])
-Disj = collections.namedtuple('Disj', ['eqs'])
+from AST import Var, Const, Func, Eq, Disj, Conj
 
 def symbol(s):
     return p.whitespace.many() >> p.string(s) << p.whitespace.many()
+
+def parenthesised(parser):
+    @p.generate
+    def a():
+        # Handle parenthesised terms
+        if (yield symbol('(').optional()):
+            t = yield a
+            yield symbol(')')
+            return t
+        else:
+            return (yield parser)
+    return a
 
 alpha_numeric = p.regex('[a-zA-Z0-9_]')
 
@@ -51,19 +59,6 @@ formula_role = p.string_from(
 constant = (lower_word | p.string('$') + lower_word | p.string('$$') + lower_word).map(Const)
 variable = upper_word.map(Var)
 
-def parenthesised(parser):
-    @p.generate
-    def a():
-        # Handle parenthesised terms
-        if (yield symbol('(').optional()):
-            t = yield a
-            yield symbol(')')
-            return t
-        else:
-            return (yield parser)
-    return a
-
-
 @p.generate
 def fof_term():
     v = yield variable.optional()
@@ -104,17 +99,18 @@ disjunction = literal.sep_by(symbol('|'))
 cnf_formula = parenthesised(disjunction)
 
 cnf_annotated = (symbol('cnf') >> symbol('(') >>
-    p.seq(name, symbol(',') >> formula_role, symbol(',') >> cnf_formula).map(tuple)
+    p.seq(name, symbol(',') >> formula_role, symbol(',') >> cnf_formula).combine(Disj)
     << symbol(')') << symbol('.'))
+
+cnf_list = cnf_annotated.many().map(Conj)
 
 def parse_cnf_file(s):
     # Filter out comments
     s = '\n'.join(l for l in s.split('\n') if not l.startswith('#'))
-    print(s)
-    return cnf_annotated.many().parse(s)
+    return cnf_list.parse(s)
 
 # with open('E_conj/problems/l100_fomodel0', 'r') as f:
 #     s = f.read()
 #     a = parse_cnf_file(s)
-#     print('\n'.join(map(str, a)))
+#     print('\n'.join(map(str, a.disjs)))
 
