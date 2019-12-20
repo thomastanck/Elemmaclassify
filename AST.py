@@ -9,7 +9,7 @@ Func = collections.namedtuple('Func', 'funcname, args')
 Eq = collections.namedtuple('Eq', 'pos, t1, t2')
 
 # Disj is a list of Eqs
-Disj = collections.namedtuple('Disj', 'name, type, eqs')
+Disj = collections.namedtuple('Disj', 'name, role, eqs')
 
 # Conj is a list of Disj
 Conj = collections.namedtuple('Conj', 'disjs')

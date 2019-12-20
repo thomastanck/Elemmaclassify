@@ -104,13 +104,12 @@ cnf_annotated = (symbol('cnf') >> symbol('(') >>
 
 cnf_list = cnf_annotated.many().map(Conj)
 
-def parse_cnf_file(s):
+def parse_cnf_list(s):
     # Filter out comments
     s = '\n'.join(l for l in s.split('\n') if not l.startswith('#'))
     return cnf_list.parse(s)
 
-# with open('E_conj/problems/l100_fomodel0', 'r') as f:
-#     s = f.read()
-#     a = parse_cnf_file(s)
-#     print('\n'.join(map(str, a.disjs)))
+def parse_cnf_file(filename):
+    with open(filename, 'r') as f:
+        return parse_cnf_list(f.read())
 
