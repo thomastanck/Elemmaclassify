@@ -8,6 +8,10 @@ verify_ssl = true
 [packages]
 parsy = "*"
 numpy = "*"
+xgboost = "*"
+torch = "*"
+torchvision = "*"
+tensorboard = "*"
 
 [requires]
 python_version = "3"
