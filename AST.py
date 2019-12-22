@@ -2,6 +2,7 @@ import collections
 
 # a term is either a Var, Const, or Func
 Var = collections.namedtuple('Var', 'name')
+Dist = collections.namedtuple('Dist', 'name')
 Const = collections.namedtuple('Const', 'name')
 Func = collections.namedtuple('Func', 'funcname, args')
 
