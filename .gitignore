@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ctags file
+tags
+
+# data files
+ex1data
