@@ -19,6 +19,10 @@ def associate(x, y):
     z = zz.reshape(-1)
     return normalize(z)
 
+def decode(x, xy):
+    """ Create association between two objects """
+    return associate(torch.cat([x[0:1], x[-1:1:-1]]), xy)
+
 def merge2(x, y, weight=0.5):
     """ Merge two associations together """
     z = normalize(weight * x + (1-weight) * y)
