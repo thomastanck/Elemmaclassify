@@ -1,6 +1,8 @@
 import functools
-import parse
 import collections
+
+import parse
+import datautils
 import utils
 
 @functools.lru_cache(maxsize=1)
@@ -54,14 +56,18 @@ def convert_to_datapoints(problemlemmas, usefulness):
 @functools.lru_cache(maxsize=1)
 def get_dataset():
     usefulness = get_usefulness()
-    train, crossval, test = split_by_amount(get_problemslemmas(), [0.8, 0.9], lambda x: x)
-    train_pos, train_neg = split_by_criteria(train, [lambda x: usefulness[x[0]][x[1]] < 1])
-    crossval_pos, crossval_neg = split_by_criteria(crossval, [lambda x: usefulness[x[0]][x[1]] < 1])
-    test_pos, test_neg = split_by_criteria(test, [lambda x: usefulness[x[0]][x[1]] < 1])
+    train, crossval, test = datautils.split_by_amount(get_problemslemmas(), [0.8, 0.9], lambda x: x)
+    train_pos, train_neg = datautils.split_by_criteria(train, [lambda x: usefulness[x[0]][x[1]] < 1])
+    crossval_pos, crossval_neg = datautils.split_by_criteria(crossval, [lambda x: usefulness[x[0]][x[1]] < 1])
+    test_pos, test_neg = datautils.split_by_criteria(test, [lambda x: usefulness[x[0]][x[1]] < 1])
 
     # Shuffle order
-    train_pos = shuffle_by_hash(train_pos, key=lambda x: str(x[:2]))
-    train_neg = shuffle_by_hash(train_neg, key=lambda x: str(x[:2]))
+    train_pos = datautils.shuffle_by_hash(train_pos, key=lambda x: str(x[:2]))
+    train_neg = datautils.shuffle_by_hash(train_neg, key=lambda x: str(x[:2]))
+    crossval_pos = datautils.shuffle_by_hash(crossval_pos, key=lambda x: str(x[:2]))
+    crossval_neg = datautils.shuffle_by_hash(crossval_neg, key=lambda x: str(x[:2]))
+    test_pos = datautils.shuffle_by_hash(test_pos, key=lambda x: str(x[:2]))
+    test_neg = datautils.shuffle_by_hash(test_neg, key=lambda x: str(x[:2]))
 
     # Equalise classes
     num_examples = min(len(train_pos), len(train_neg))
@@ -69,12 +75,12 @@ def get_dataset():
     train_neg = train_neg[:num_examples]
 
     return (
-            convert_to_datapoints(train_pos),
-            convert_to_datapoints(train_neg),
-            convert_to_datapoints(crossval_pos),
-            convert_to_datapoints(crossval_neg),
-            convert_to_datapoints(test_pos),
-            convert_to_datapoints(test_neg),
+            convert_to_datapoints(train_pos, usefulness),
+            convert_to_datapoints(train_neg, usefulness),
+            convert_to_datapoints(crossval_pos, usefulness),
+            convert_to_datapoints(crossval_neg, usefulness),
+            convert_to_datapoints(test_pos, usefulness),
+            convert_to_datapoints(test_neg, usefulness),
             )
 
 @utils.persist_iterator_to_file('lemmadata/dataset-train-pos.pickle')
@@ -102,6 +108,7 @@ def get_test_neg():
     yield from get_dataset()[5]
 
 def get_train():
+    # Interleave pos and neg examples
     for pair in zip(get_train_pos(), get_train_neg()):
         yield from pair
 

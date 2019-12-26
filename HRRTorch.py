@@ -46,7 +46,23 @@ class HRRTorch(nn.Module):
 
         self.hrr_size = hrr_size
 
+        self._cache_clear_hook = self.register_backward_hook(self._cache_clear_hook_func)
+
+    @staticmethod
+    def _cache_clear_hook_func(model, _, __):
+        model.cache_clear()
+
     def cache_clear(self):
+        """
+        Clear cached tensors
+
+        We need to do this whenever we compute gradients,
+        else these tensors which already have gradients
+        will get reused (incorrectly)
+        if the module is subsequently used
+
+        This is done with a backward hook (see __init__)
+        """
         self.fold_term.cache_clear()
 
     def forward(self, input):

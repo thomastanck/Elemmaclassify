@@ -2,6 +2,7 @@ import sys
 import pickle
 import functools
 import itertools
+import subprocess
 
 import numpy as np
 
@@ -106,3 +107,11 @@ def group_into(it, group_size):
     # becomes zip(it, it, it, ...)
     # so each next call goes into each tuple position
     return zip(*(it,) * group_size)
+
+def is_git_clean():
+    status = subprocess.check_output(['git', 'status', '--porcelain'])
+    return status == b''
+
+def git_hash():
+    githash = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
+    return githash.decode('utf-8').strip()

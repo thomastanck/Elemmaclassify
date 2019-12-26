@@ -1,7 +1,8 @@
+import collections
 import zlib
 
 def shufflehash(x):
-    return zlib.crc32(key(x).encode('utf-8')) & 0xffffffff
+    return zlib.crc32(str(x).encode('utf-8')) & 0xffffffff
 
 def shuffle_by_hash(l, key=str):
     return sorted(l, key=lambda x: shufflehash(key(x)))
@@ -11,7 +12,7 @@ def split_by_amount(data, cumulative_fractions, sortkey):
     splits = []
     cur_amt = 0
     for frac in cumulative_fractions:
-        amt = len(shuf) * frac
+        amt = int(len(shuf) * frac)
         splits.append(shuf[cur_amt:amt])
         cur_amt = amt
     splits.append(shuf[cur_amt:])
