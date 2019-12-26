@@ -1,6 +1,7 @@
 import sys
 import pickle
 import functools
+import itertools
 
 import numpy as np
 
@@ -9,7 +10,7 @@ def active_persist_to_file(filename):
         cache = None
 
         @functools.wraps(original_func)
-        def new_func(*params):
+        def new_func(*params, filename=filename):
             nonlocal cache
 
             if cache is None:
@@ -34,7 +35,7 @@ def persist_to_file(filename):
     def decorator(original_func):
 
         @functools.wraps(original_func)
-        def new_func(*params):
+        def new_func(*params, filename=filename):
             # print('Loading', params, 'from', filename.format(*params))
             try:
                 cache = pickle.load(open(filename.format(*params), 'rb'))
@@ -53,5 +54,55 @@ def persist_to_file(filename):
 
     return decorator
 
+def persist_iterator_to_file(filename):
+    def decorator(original_iterator):
+
+        @functools.wraps(original_iterator)
+        def new_func(*params, filename=filename):
+            # print('Loading', params, 'from', filename.format(*params))
+            try:
+                with open(filename.format(*params), 'rb') as f:
+                    # Check that the file contains the correct contents
+                    pickled_params = pickle.load(f)
+                    if params != pickled_params:
+                        raise RuntimeError('Persisting iterators to file only works if every possible input is given a unique filename')
+
+                    while True:
+                        try:
+                            yield pickle.load(f)
+                        except EOFError:
+                            break
+
+            except (IOError, ValueError):
+                # Save the whole iterator first.
+                with open(filename.format(*params), 'wb') as f:
+                    # Save params as a check that the file is actually correct
+                    pickle.dump(params, f)
+                    for obj in original_iterator():
+                        pickle.dump(obj, f)
+
+                # Now return the actual iterator with recursive call
+                yield from new_func(*params)
+
+        return new_func
+
+    return decorator
+
 def normalize(vec):
     return vec / np.linalg.norm(vec)
+
+def approx_int_square_root(n):
+    """ Returns the largest divisor of n less than sqrt(n). """
+    return next(i for i in range(int(n ** 0.5) + 1, 0, -1) if n % i == 0)
+
+def twodfy(tensor):
+    """ Try to make 1d tensors into a squareish shape """
+
+    if len(tensor.shape) == 1:
+        return tensor.reshape((approx_int_square_root(tensor.shape[0]), -1))
+    return tensor
+
+def group_into(it, group_size):
+    # becomes zip(it, it, it, ...)
+    # so each next call goes into each tuple position
+    return zip(*(it,) * group_size)
