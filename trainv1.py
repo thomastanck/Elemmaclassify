@@ -110,6 +110,8 @@ def train(
         ):
     """ The big train function with all the settings """
 
+    torch.set_num_threads(8)
+
     if not utils.is_git_clean():
         raise RuntimeError('Ensure that all changes have been committed!')
 
