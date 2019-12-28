@@ -21,6 +21,8 @@ import lemmadata
 ExperimentSettings = collections.namedtuple(
         'ExperimentSettings',
         '''
+        comment
+
         hrr_size
         num_decoders
         num_classifier_layers
@@ -37,48 +39,51 @@ ExperimentSettings = collections.namedtuple(
         ''')
 
 experiments = [
-        ExperimentSettings(16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+
+        # Model experiments
+        ExperimentSettings('Model-H16D0L2ReLU',     16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L3ReLU',     16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L2ReLU',     16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L3ReLU',     16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L2ReLU',     64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L3ReLU',     64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L2ReLU',     64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L3ReLU',     64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L2ReLU',    64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L3ReLU',    64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L2Sigmoid',  16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L3Sigmoid',  16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L2Sigmoid',  16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L3Sigmoid',  16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L2Sigmoid',  64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L3Sigmoid',  64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L2Sigmoid',  64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L3Sigmoid',  64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L2Sigmoid', 64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L3Sigmoid', 64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
 
         # Adam LR experiments
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H16D8L3ReLU',    16, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H64D8L3ReLU',    64, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H16D8L3Sigmoid', 16, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H64D8L3Sigmoid', 64, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H16D8L3ReLU',    16, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H64D8L3ReLU',    64, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H16D8L3Sigmoid', 16, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H64D8L3Sigmoid', 64, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H16D8L3ReLU',    16, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H64D8L3ReLU',    64, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H16D8L3Sigmoid', 16, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H64D8L3Sigmoid', 64, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H16D8L3ReLU',    16, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H64D8L3ReLU',    64, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H16D8L3Sigmoid', 16, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H64D8L3Sigmoid', 64, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H16D8L3ReLU',    16, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H64D8L3ReLU',    64, 8, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H16D8L3Sigmoid', 16, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H64D8L3Sigmoid', 64, 8, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+
         ]
 
 def make_model(experimentsettings):
@@ -111,7 +116,7 @@ def make_loss(model, experimentsettings):
         errorloss = bceloss(pred, target)
 
         # Add regularisation for unit vectors (should have norm 1)
-        unitvecloss = torch.tensor([0.])
+        unitvecloss = torch.tensor(0.)
         count = 0
         for param in (
                 *model.hrrmodel.fixed_encodings.values(),
@@ -125,7 +130,7 @@ def make_loss(model, experimentsettings):
         unitvecloss /= count
 
         # Add regularisation for mixing vectors (should sum to 1)
-        sumvecloss = torch.tensor([0.])
+        sumvecloss = torch.tensor(0.)
         count = 0
         for param in (
                 *model.hrrmodel.ground_vec_merge_ratios.values(),
@@ -144,17 +149,19 @@ def make_loss(model, experimentsettings):
         # Let's not bother (looking at the data, it looks well behaved)
 
         # Add regularisation for MLP weights
-        mlpweightloss = torch.tensor([0.])
+        mlpweightloss = torch.tensor(0.)
         count = 0
         for param in model.classifier.parameters():
             mlpweightloss += param.norm()
             count += 1
         mlpweightloss /= count
 
-        return (errorloss
-                + experimentsettings.unitvecloss_weight * unitvecloss
-                + experimentsettings.sumvecloss_weight * sumvecloss
-                + experimentsettings.mlpweightloss_weight * mlpweightloss
+        print(errorloss, unitvecloss, sumvecloss, mlpweightloss)
+
+        return (errorloss,
+                experimentsettings.unitvecloss_weight * unitvecloss +
+                experimentsettings.sumvecloss_weight * sumvecloss +
+                experimentsettings.mlpweightloss_weight * mlpweightloss
                 )
 
     return loss_func
@@ -179,7 +186,7 @@ if __name__ == '__main__':
 
     trainv1.train(
             'ex3data',
-            'ex3',
+            'ex3-{}-{}'.format(experiment_id, experimentsettings.comment),
             model,
             loss_func,
             opt,

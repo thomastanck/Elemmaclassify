@@ -47,7 +47,8 @@ def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsiz
 
     batch_iterator = utils.group_into(get_crossval(), batchsize)
 
-    loss = torch.tensor([0.])
+    errloss = torch.tensor(0.)
+    regloss = torch.tensor(0.)
 
     with torch.no_grad():
         count = 0
@@ -63,10 +64,13 @@ def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsiz
                 stats = datautils.update_stats(stats, bool(pred > 0), y)
 
             target = torch.tensor([1. if y else 0. for y in batchy])
-            loss += loss_func(model, preds, target)
+            losses = loss_func(model, preds, target)
+            errloss += losses[0]
+            regloss += losses[1]
             count += 1
 
-    writer.add_scalar('Loss/crossval', loss / count, global_counter)
+    writer.add_scalar('Err-Loss/crossval', errloss / count, global_counter)
+    writer.add_scalar('Reg-Loss/crossval', regloss / count, global_counter)
 
     acc, precision, recall, fscore = datautils.calc_stats(stats)
     writer.add_scalar('Accuracy/crossval', acc, global_counter)
@@ -75,7 +79,7 @@ def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsiz
     writer.add_scalar('F-Score/crossval', fscore, global_counter)
 
 def log_weights(writer, model, global_counter):
-    for name, weight in model.classifier.named_parameters():
+    for name, weight in model.named_parameters():
         writer.add_image('weight_{}'.format(name), utils.twodfy(weight), global_counter, dataformats='HW')
 
 def log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings):
@@ -136,7 +140,7 @@ def train(
     weights_every_i_batches = trainsettings.weights_every_i_batches
 
     parallelmodel = nn.DataParallel(model)
-    writer = torchboard.SummaryWriter(comment='trainv1-{}-{}'.format(short_git_hash, experiment_name))
+    writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
 
     try:
         epoch_iterator = range(numepochs) if numepochs is not None else itertools.count()
@@ -177,12 +181,14 @@ def train(
 
             global_counter += len(batch)
             target = torch.tensor([1. if y else 0. for y in batchy])
-            loss = loss_func(model, preds, target)
+            errloss, regloss = loss_func(model, preds, target)
 
             if batchnum % loss_every_i_batches == 0:
-                writer.add_scalar('Loss/train', loss, global_counter)
+                writer.add_scalar('Err-Loss/train', errloss, global_counter)
+                writer.add_scalar('Reg-Loss/train', regloss, global_counter)
 
-            loss.backward()
+            errloss.backward()
+            regloss.backward()
             opt.step()
             opt.zero_grad()
 
