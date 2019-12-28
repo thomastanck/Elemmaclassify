@@ -148,7 +148,7 @@ def train(
         batch_iterator = utils.group_into(dataset_iterator, batchsize)
         stats = datautils.Stats()
         global_counter = 0
-        prev_epoch = -1
+        prev_epoch = 0
 
         for batchnum, batch_ in enumerate(batch_iterator):
             epoch = [point[0] for point in batch_][0]
