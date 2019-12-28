@@ -29,29 +29,56 @@ ExperimentSettings = collections.namedtuple(
         unitvecloss_weight
         sumvecloss_weight
         mlpweightloss_weight
+
+        adam_lr
+        adam_beta1
+        adam_beta2
+        adam_weight_decay
         ''')
 
 experiments = [
-        ExperimentSettings(16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.1),
-        ExperimentSettings(16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.1),
-        ExperimentSettings(64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.1),
+        ExperimentSettings(16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-3, 0.9, 0.999, 0),
+
+        # Adam LR experiments
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings(16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings(64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.1, 1e-1, 0.9, 0.999, 0),
         ]
 
 def make_model(experimentsettings):
@@ -133,7 +160,12 @@ def make_loss(model, experimentsettings):
     return loss_func
 
 def make_opt(model, experimentsettings):
-    return optim.Adam(model.parameters())
+    lr = experimentsettings.adam_lr
+    beta1 = experimentsettings.adam_beta1
+    beta2 = experimentsettings.adam_beta2
+    weight_decay = experimentsettings.adam_weight_decay
+
+    return optim.Adam(model.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=weight_decay)
 
 if __name__ == '__main__':
     settings = docopt.docopt(__doc__)
