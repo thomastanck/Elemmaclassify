@@ -25,6 +25,11 @@ class Decoder_featurizer(nn.Module):
 
         self.output_size = hrr_size * 2 * (1 + num_decoders)
 
+        for p in self.decoders:
+            nn.init.normal_(p)
+            with torch.no_grad():
+                p /= p.norm()
+
     def forward(self, problemhrr, lemmahrr):
         return torch.cat([
             problemhrr,

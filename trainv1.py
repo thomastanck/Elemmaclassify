@@ -66,7 +66,7 @@ def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsiz
             loss += loss_func(model, preds, target)
             count += 1
 
-    writer.add_scalar('Loss/train', loss / count, global_counter)
+    writer.add_scalar('Loss/crossval', loss / count, global_counter)
 
     acc, precision, recall, fscore = datautils.calc_stats(stats)
     writer.add_scalar('Accuracy/crossval', acc, global_counter)
