@@ -341,6 +341,9 @@ class FlatTreeHRRTorch2(FlatTreeHRRTorch):
     def __init__(self, hrr_size):
         super(FlatTreeHRRTorch2, self).__init__(hrr_size)
 
+        # Delete the parameter we are overriding
+        self.specifier_covariances = None
+
         specifier_dict = {
                 '!Var': 1,
                 '!Const': 1,

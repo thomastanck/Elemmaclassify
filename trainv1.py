@@ -5,6 +5,8 @@ import json
 
 import torch
 import torch.nn as nn
+import torch.distributed as dist
+import torch.multiprocessing as mp
 import torch.utils.tensorboard as torchboard
 
 import datautils
@@ -14,7 +16,7 @@ TrainSettings = collections.namedtuple(
         'TrainSettings',
         '''
         numepochs
-        num_threads
+        num_procs
         testingbatchsize
         loss_every_i_batches
         stats_every_i_batches
@@ -64,7 +66,7 @@ def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsiz
                 stats = datautils.update_stats(stats, bool(pred > 0), y)
 
             target = torch.tensor([1. if y else 0. for y in batchy])
-            losses = loss_func(model, preds, target)
+            losses = loss_func(preds, target)
             errloss += losses[0]
             regloss += losses[1]
             count += 1
@@ -102,6 +104,8 @@ def save_model(model, save_dir, short_git_hash, experiment_name, global_counter)
     torch.save(model, model_filename)
 
 def train(
+        rank,
+        world_size,
         save_dir,
         experiment_name,
         model,
@@ -109,14 +113,15 @@ def train(
         opt,
         get_train,
         get_crossval,
+        batch_queue,
         experimentsettings,
         trainsettings={},
         ):
     """ The big train function with all the settings """
 
-    trainsettings = TrainSettings()._replace(**trainsettings)
+    dist.init_process_group('gloo', init_method='env://', world_size=world_size, rank=rank)
 
-    torch.set_num_threads(trainsettings.num_threads)
+    torch.set_num_threads(1)
 
     if not utils.is_git_clean():
         raise RuntimeError('Ensure that all changes have been committed!')
@@ -142,8 +147,10 @@ def train(
     save_every_i_batches = trainsettings.save_every_i_batches
     weights_every_i_batches = trainsettings.weights_every_i_batches
 
-    parallelmodel = nn.DataParallel(model)
-    writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
+    parallelmodel = model
+
+    if rank == 0:
+        writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
 
     try:
         epoch_iterator = range(numepochs) if numepochs is not -1 else itertools.count()
@@ -153,46 +160,89 @@ def train(
         global_counter = 0
         prev_epoch = 0
 
-        for batchnum, batch_ in enumerate(batch_iterator):
-            epoch = [point[0] for point in batch_][0]
-            batch = [point[1] for point in batch_]
+        for batchnum, batch__ in enumerate(batch_iterator):
+            # batch__ = list(batch__)
+            # batch_ = list(batch__[rank::world_size])
+            # epoch = [point[0] for point in batch__][0]
+            # batch = [point[1] for point in batch_]
 
-            if batchnum % save_every_i_batches == 0:
+            dist.barrier()
+
+            if rank == 0:
+                batch__ = list(batch__)
+                epoch = [point[0] for point in batch__][0]
+
+                for point in batch__:
+                    batch_queue.put(point[1])
+
+            # Make sure everything sees something in the queue
+            while batch_queue.empty():
+                continue
+
+            dist.barrier()
+
+            if rank == 0 and batchnum % save_every_i_batches == 0:
                 save_model(model, save_dir, short_git_hash, experiment_name, global_counter)
 
-            if epoch != prev_epoch:
+            if rank == 0 and epoch > prev_epoch:
                 prev_epoch = epoch
                 log_crossval(writer, model, parallelmodel, loss_func, get_crossval, testingbatchsize, global_counter)
 
-            print('(i: {}) Training batch #{}'.format(global_counter, batchnum))
+            if rank == 0:
+                print('(i: {}) Training batch #{}'.format(global_counter, batchnum))
 
-            batchx = [point[0] for point in batch]
-            batchy = [point[1] for point in batch]
-
-            if batchnum % stats_every_i_batches == 0:
+            if rank == 0 and batchnum % stats_every_i_batches == 0:
                 log_stats(writer, stats, global_counter)
                 stats = datautils.Stats()
 
-            if batchnum % weights_every_i_batches == 0:
+            if rank == 0 and batchnum % weights_every_i_batches == 0:
                 log_weights(writer, model, global_counter)
 
-            preds = parallelmodel(batchx)
+            # batchx = [point[0] for point in batch]
+            # batchy = [point[1] for point in batch]
+            # preds = parallelmodel(batchx)
+
+            batchx = []
+            batchy = []
+            preds = []
+
+            while True:
+                try:
+                    point = batch_queue.get(block=False)
+                    batchx.append(point[0])
+                    batchy.append(point[1])
+                    preds.append(model([point[0]]))
+                except:
+                    if batch_queue.qsize() == 0 and batch_queue.empty():
+                        break
+
+            preds = torch.cat(preds)
 
             for pred, y in zip(preds, batchy):
                 with torch.no_grad():
                     stats = datautils.update_stats(stats, bool(pred > 0), y)
 
-            global_counter += len(batch)
+            global_counter += len(batch__)
             target = torch.tensor([1. if y else 0. for y in batchy])
-            errloss, regloss = loss_func(model, preds, target)
-
-            if batchnum % loss_every_i_batches == 0:
-                writer.add_scalar('Err-Loss/train', errloss, global_counter)
-                writer.add_scalar('Reg-Loss/train', regloss, global_counter)
-
+            errloss, regloss = loss_func(preds, target)
             errloss.backward()
+
+            for param in model.parameters():
+                param.grad.data *= len(preds)
+                dist.all_reduce(param.grad.data)
+                param.grad.data /= len(batch__)
+
             regloss.backward()
-            opt.step()
+
+            if rank == 0 and batchnum % loss_every_i_batches == 0:
+                print('(i: {}) Loss: {:.5f}\t{:.5f}'.format(global_counter, errloss.item(), regloss.item()))
+                writer.add_scalar('Err-Loss/train', errloss.item(), global_counter)
+                writer.add_scalar('Reg-Loss/train', regloss.item(), global_counter)
+
+            dist.barrier()
+
+            if rank == 0:
+                opt.step()
             opt.zero_grad()
 
     except KeyboardInterrupt:

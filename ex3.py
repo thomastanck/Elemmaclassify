@@ -10,16 +10,20 @@ Options:
 
 import sys
 import collections
+import os
+import random
 
 import docopt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.multiprocessing as mp
 
 import HRRTorch
 import HRRClassifier
 import trainv1
 import lemmadata
+import datautils
 
 ExperimentSettings = collections.namedtuple(
         'ExperimentSettings',
@@ -43,7 +47,7 @@ ExperimentSettings = collections.namedtuple(
         adam_weight_decay
         ''')
 
-experiments = [
+model_experiments = [
 
         # Model experiments
         ExperimentSettings('Model-H16D0L2ReLU',      16, 16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
@@ -66,6 +70,10 @@ experiments = [
         ExperimentSettings('Model-H64D8L3Sigmoid',   16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
         ExperimentSettings('Model-H64D16L2Sigmoid',  16, 64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
         ExperimentSettings('Model-H64D16L3Sigmoid',  16, 64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+
+        ]
+
+adam_experiments = [
 
         # Adam LR experiments
         ExperimentSettings('LR-3e-3-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
@@ -90,6 +98,36 @@ experiments = [
         ExperimentSettings('LR-3e-1-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
 
         ]
+
+round2_experiments = []
+for batchsize in 16, 64, 256:
+    for activation in 'LeakyReLU', 'Sigmoid':
+        for hrr_size in 64, 128, 256, 512:
+            for num_decoders in 16, 32, 64, 128:
+                for num_classifier_layers in 2, 3:
+                    for LR in 1e-3, 3e-4, 1e-4:
+                        round2_experiments.append(
+                            ExperimentSettings(
+                                'Round2-{}-B{}H{}D{}L{}{}'.format(
+                                    LR, batchsize, hrr_size, num_decoders, num_classifier_layers, activation),
+                                batchsize,
+                                hrr_size,
+                                num_decoders,
+                                num_classifier_layers,
+                                64,
+                                activation,
+                                0.1,
+                                0.1,
+                                0.005,
+                                LR,
+                                0.9,
+                                0.999,
+                                0))
+
+# Round 2 experiments (randomly keep 20 of them)
+round2_experiments = datautils.shuffle_by_hash(round2_experiments)[:20]
+
+experiments = model_experiments + adam_experiments + round2_experiments
 
 def make_model(experimentsettings):
     hrr_size = experimentsettings.hrr_size
@@ -116,60 +154,7 @@ def make_model(experimentsettings):
             )
 
 def make_loss(model, experimentsettings):
-    bceloss = nn.BCEWithLogitsLoss()
-    def loss_func(model, pred, target):
-        errorloss = bceloss(pred, target)
-
-        # Add regularisation for unit vectors (should have norm 1)
-        unitvecloss = torch.tensor(0.)
-        count = 0
-        for param in (
-                *model.hrrmodel.fixed_encodings.values(),
-                *model.featurizer.decoders,
-                ):
-            sqsum = torch.sum(param ** 2)
-            # Sum squared error = (norm - 1) ** 2
-            #                   = (norm**2 - 2*norm + 1)
-            unitvecloss += sqsum - 2 * sqsum ** 0.5 + 1
-            count += 1
-        unitvecloss /= count
-
-        # Add regularisation for mixing vectors (should sum to 1)
-        sumvecloss = torch.tensor(0.)
-        count = 0
-        for param in (
-                *model.hrrmodel.ground_vec_merge_ratios.values(),
-                model.hrrmodel.func_weights,
-                model.hrrmodel.eq_weights,
-                model.hrrmodel.disj_weights,
-                model.hrrmodel.conj_weights,
-                ):
-            sum_ = torch.sum(param)
-            # Sum squared error = (sum - 1) ** 2
-            sumvecloss += (sum_ - 1) ** 2
-            count += 1
-        sumvecloss /= count
-
-        # Add regularisation for variance vectors?
-        # Let's not bother (looking at the data, it looks well behaved)
-
-        # Add regularisation for MLP weights
-        mlpweightloss = torch.tensor(0.)
-        count = 0
-        for param in model.classifier.parameters():
-            mlpweightloss += param.norm()
-            count += 1
-        mlpweightloss /= count
-
-        print(errorloss, unitvecloss, sumvecloss, mlpweightloss)
-
-        return (errorloss,
-                experimentsettings.unitvecloss_weight * unitvecloss +
-                experimentsettings.sumvecloss_weight * sumvecloss +
-                experimentsettings.mlpweightloss_weight * mlpweightloss
-                )
-
-    return loss_func
+    return HRRClassifier.HRRClassifierLoss(model, experimentsettings)
 
 def make_opt(model, experimentsettings):
     lr = experimentsettings.adam_lr
@@ -178,6 +163,22 @@ def make_opt(model, experimentsettings):
     weight_decay = experimentsettings.adam_weight_decay
 
     return optim.Adam(model.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=weight_decay)
+
+def main(rank, world_size, model, loss_func, opt, batch_queue, experiment_id, trainsettings, experimentsettings):
+    trainv1.train(
+            rank,
+            world_size,
+            'ex3data',
+            'ex3-{}-{}'.format(experiment_id, experimentsettings.comment),
+            model,
+            loss_func,
+            opt,
+            lemmadata.get_train,
+            lemmadata.get_crossval,
+            batch_queue,
+            experimentsettings,
+            trainsettings,
+            )
 
 if __name__ == '__main__':
     settings = docopt.docopt(__doc__)
@@ -194,19 +195,27 @@ if __name__ == '__main__':
     else:
         trainsettings = {}
 
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = str(random.randint(10000,20000))
+
+    trainsettings = trainv1.TrainSettings()._replace(**trainsettings)
+
+    torch.manual_seed(42)
+
     model = make_model(experimentsettings)
     loss_func = make_loss(model, experimentsettings)
     opt = make_opt(model, experimentsettings)
 
-    trainv1.train(
-            'ex3data',
-            'ex3-{}-{}'.format(experiment_id, experimentsettings.comment),
-            model,
-            loss_func,
-            opt,
-            lemmadata.get_train,
-            lemmadata.get_crossval,
-            experimentsettings,
-            trainsettings,
+    mp.spawn(
+            main,
+            args=(
+                trainsettings.num_procs,
+                model, loss_func, opt,
+                mp.get_context('spawn').Queue(),
+                experiment_id,
+                trainsettings,
+                experimentsettings,
+                ),
+            nprocs=trainsettings.num_procs,
             )
 

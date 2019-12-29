@@ -58,3 +58,66 @@ class HRRClassifier(nn.Module):
             features = self.featurizer(problemhrr, lemmahrr)
             out.append(self.classifier(features))
         return torch.cat(out)
+
+class HRRClassifierLoss(nn.Module):
+    def __init__(self, model, experimentsettings):
+        super(HRRClassifierLoss, self).__init__()
+
+        self.model = model
+        self.experimentsettings = experimentsettings
+        self.bceloss = nn.BCEWithLogitsLoss()
+
+    def forward(self, pred, target):
+        errorloss = self.bceloss(pred, target)
+
+        # Add regularisation for unit vectors (should have norm 1)
+        unitvecloss = torch.tensor(0.)
+        count = 0
+        for param in (
+                *self.model.hrrmodel.fixed_encodings.values(),
+                *self.model.featurizer.decoders,
+                ):
+            sqsum = torch.sum(param ** 2)
+            # Sum squared error = (norm - 1) ** 2
+            #                   = (norm**2 - 2*norm + 1)
+            unitvecloss += sqsum - 2 * sqsum ** 0.5 + 1
+            count += 1
+        unitvecloss /= count
+
+        # Add regularisation for mixing vectors (should sum to 1)
+        sumvecloss = torch.tensor(0.)
+        count = 0
+        for param in (
+                *self.model.hrrmodel.ground_vec_merge_ratios.values(),
+                self.model.hrrmodel.func_weights,
+                self.model.hrrmodel.eq_weights,
+                self.model.hrrmodel.disj_weights,
+                self.model.hrrmodel.conj_weights,
+                ):
+            sum_ = torch.sum(param)
+            # Sum squared error = (sum - 1) ** 2
+            sumvecloss += (sum_ - 1) ** 2
+            count += 1
+        sumvecloss /= count
+
+        # Add regularisation for variance vectors?
+        # Let's not bother (looking at the data, it looks well behaved)
+
+        # Add regularisation for MLP weights
+        mlpweightloss = torch.tensor(0.)
+        count = 0
+        for param in self.model.classifier.parameters():
+            mlpweightloss += param.norm()
+            count += 1
+        mlpweightloss /= count
+
+        allweightloss = torch.tensor(0.)
+        for param in self.model.parameters():
+            allweightloss += param.sum()
+
+        return (errorloss + 0 * allweightloss,
+                self.experimentsettings.unitvecloss_weight * unitvecloss +
+                self.experimentsettings.sumvecloss_weight * sumvecloss +
+                self.experimentsettings.mlpweightloss_weight * mlpweightloss
+                )
+
