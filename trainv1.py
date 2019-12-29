@@ -14,7 +14,7 @@ TrainSettings = collections.namedtuple(
         'TrainSettings',
         '''
         numepochs
-        batchsize
+        num_threads
         testingbatchsize
         loss_every_i_batches
         stats_every_i_batches
@@ -25,7 +25,7 @@ TrainSettings = collections.namedtuple(
 
 TrainSettings.__new__.__defaults__ = (
         None,
-        torch.get_num_threads() * 2,
+        8,
         1024,
         1,
         5,
@@ -110,11 +110,13 @@ def train(
         get_train,
         get_crossval,
         experimentsettings,
-        trainsettings=TrainSettings(),
+        trainsettings={},
         ):
     """ The big train function with all the settings """
 
-    torch.set_num_threads(8)
+    trainsettings = TrainSettings()._replace(**trainsettings)
+
+    torch.set_num_threads(trainsettings.num_threads)
 
     if not utils.is_git_clean():
         raise RuntimeError('Ensure that all changes have been committed!')
@@ -131,8 +133,9 @@ def train(
     # Log experiment information
     log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings)
 
+    batchsize = experimentsettings.batchsize
+
     numepochs = trainsettings.numepochs
-    batchsize = trainsettings.batchsize
     testingbatchsize = trainsettings.testingbatchsize
     loss_every_i_batches = trainsettings.loss_every_i_batches
     stats_every_i_batches = trainsettings.stats_every_i_batches
