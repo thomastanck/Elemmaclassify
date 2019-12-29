@@ -24,7 +24,7 @@ TrainSettings = collections.namedtuple(
         ''')
 
 TrainSettings.__new__.__defaults__ = (
-        None,
+        -1,
         8,
         1024,
         1,
@@ -146,7 +146,7 @@ def train(
     writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
 
     try:
-        epoch_iterator = range(numepochs) if numepochs is not None else itertools.count()
+        epoch_iterator = range(numepochs) if numepochs is not -1 else itertools.count()
         dataset_iterator = ((epoch, point) for epoch in epoch_iterator for point in get_train())
         batch_iterator = utils.group_into(dataset_iterator, batchsize)
         stats = datautils.Stats()

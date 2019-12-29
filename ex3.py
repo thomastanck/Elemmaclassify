@@ -2,7 +2,10 @@
 Experiment 3 runner
 
 Usage:
-    ex3.py <experiment_id>
+    ex3.py <experiment_id> [--train-settings=<trainsettings>]
+
+Options:
+    --trainsettings=<trainsettings>  Comma separated list of key:value pairs.
 '''
 
 import sys
@@ -182,6 +185,15 @@ if __name__ == '__main__':
     experiment_id = int(settings['<experiment_id>'])
     experimentsettings = experiments[experiment_id]
 
+    if '--train-settings' in settings:
+        trainsettings = {
+                key.strip(): int(value.strip())
+                for pair in settings['--train-settings'].split(',')
+                for key, value, *_ in [pair.split(':')]
+                }
+    else:
+        trainsettings = {}
+
     model = make_model(experimentsettings)
     loss_func = make_loss(model, experimentsettings)
     opt = make_opt(model, experimentsettings)
@@ -195,5 +207,6 @@ if __name__ == '__main__':
             lemmadata.get_train,
             lemmadata.get_crossval,
             experimentsettings,
+            trainsettings,
             )
 
