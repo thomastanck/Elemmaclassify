@@ -89,6 +89,9 @@ def persist_iterator_to_file(filename):
 
     return decorator
 
+def randvec(shape):
+    return np.random.normal(np.zeros(shape))
+
 def normalize(vec):
     return vec / np.linalg.norm(vec)
 

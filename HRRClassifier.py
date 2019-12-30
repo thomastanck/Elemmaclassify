@@ -41,6 +41,31 @@ class Decoder_featurizer(nn.Module):
     def get_output_size(self):
         return self.output_size
 
+class DecoderComp_featurizer(nn.Module):
+    def __init__(self, hrr_size, num_decoders):
+        super(DecoderComp_featurizer, self).__init__()
+
+        decoders = [ nn.Parameter(torch.empty((2, hrr_size))) for i in range(num_decoders) ]
+        self.decoders = nn.ParameterList(decoders)
+
+        self.output_size = 2 * hrr_size * 2 * (1 + num_decoders)
+
+        for p in self.decoders:
+            nn.init.normal_(p)
+            with torch.no_grad():
+                p /= p.norm()
+
+    def forward(self, problemhrr, lemmahrr):
+        return torch.cat([
+            problemhrr,
+            lemmahrr,
+            *(HRRTorch.associate_comp(decoder, problemhrr) for decoder in self.decoders),
+            *(HRRTorch.associate_comp(decoder, lemmahrr) for decoder in self.decoders),
+            ]).reshape(-1)
+
+    def get_output_size(self):
+        return self.output_size
+
 class HRRClassifier(nn.Module):
 
     def __init__(self, hrrmodel, featurizer, classifier):

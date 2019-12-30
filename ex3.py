@@ -32,6 +32,7 @@ ExperimentSettings = collections.namedtuple(
 
         batchsize
 
+        hrr_class
         hrr_size
         num_decoders
         num_classifier_layers
@@ -50,82 +51,85 @@ ExperimentSettings = collections.namedtuple(
 model_experiments = [
 
         # Model experiments
-        ExperimentSettings('Model-H16D0L2ReLU',      16, 16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D0L3ReLU',      16, 16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D8L2ReLU',      16, 16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D8L3ReLU',      16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D0L2ReLU',      16, 64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D0L3ReLU',      16, 64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D8L2ReLU',      16, 64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D8L3ReLU',      16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D16L2ReLU',     16, 64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D16L3ReLU',     16, 64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D0L2Sigmoid',   16, 16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D0L3Sigmoid',   16, 16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D8L2Sigmoid',   16, 16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D8L3Sigmoid',   16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H16D0L2Sigmoid',   16, 64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D0L3Sigmoid',   16, 64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D8L2Sigmoid',   16, 64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D8L3Sigmoid',   16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D16L2Sigmoid',  16, 64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
-        ExperimentSettings('Model-H64D16L3Sigmoid',  16, 64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L2ReLU',      16, 'FlatTreeHRRTorch2', 16, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L3ReLU',      16, 'FlatTreeHRRTorch2', 16, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L2ReLU',      16, 'FlatTreeHRRTorch2', 16, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L3ReLU',      16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L2ReLU',      16, 'FlatTreeHRRTorch2', 64, 0,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L3ReLU',      16, 'FlatTreeHRRTorch2', 64, 0,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L2ReLU',      16, 'FlatTreeHRRTorch2', 64, 8,  2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L3ReLU',      16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L2ReLU',     16, 'FlatTreeHRRTorch2', 64, 16, 2, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L3ReLU',     16, 'FlatTreeHRRTorch2', 64, 16, 3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L2Sigmoid',   16, 'FlatTreeHRRTorch2', 16, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L3Sigmoid',   16, 'FlatTreeHRRTorch2', 16, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L2Sigmoid',   16, 'FlatTreeHRRTorch2', 16, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D8L3Sigmoid',   16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H16D0L2Sigmoid',   16, 'FlatTreeHRRTorch2', 64, 0,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D0L3Sigmoid',   16, 'FlatTreeHRRTorch2', 64, 0,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L2Sigmoid',   16, 'FlatTreeHRRTorch2', 64, 8,  2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D8L3Sigmoid',   16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L2Sigmoid',  16, 'FlatTreeHRRTorch2', 64, 16, 2, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
+        ExperimentSettings('Model-H64D16L3Sigmoid',  16, 'FlatTreeHRRTorch2', 64, 16, 3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-3, 0.9, 0.999, 0),
 
         ]
 
 adam_experiments = [
 
         # Adam LR experiments
-        ExperimentSettings('LR-3e-3-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-3-H64D8L3ReLU',    16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-3-H16D8L3Sigmoid', 16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-3-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-2-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-2-H64D8L3ReLU',    16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-2-H16D8L3Sigmoid', 16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-2-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-2-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-2-H64D8L3ReLU',    16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-2-H16D8L3Sigmoid', 16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-2-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-1-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-1-H64D8L3ReLU',    16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-1-H16D8L3Sigmoid', 16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-1e-1-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-1-H16D8L3ReLU',    16, 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-1-H64D8L3ReLU',    16, 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-1-H16D8L3Sigmoid', 16, 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
-        ExperimentSettings('LR-3e-1-H64D8L3Sigmoid', 16, 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H16D8L3ReLU',    16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H64D8L3ReLU',    16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H16D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-3-H64D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-3, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H16D8L3ReLU',    16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H64D8L3ReLU',    16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H16D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-2-H64D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H16D8L3ReLU',    16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H64D8L3ReLU',    16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H16D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-2-H64D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-2, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H16D8L3ReLU',    16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H64D8L3ReLU',    16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H16D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-1e-1-H64D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 1e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H16D8L3ReLU',    16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H64D8L3ReLU',    16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'LeakyReLU', 0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H16D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 16, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
+        ExperimentSettings('LR-3e-1-H64D8L3Sigmoid', 16, 'FlatTreeHRRTorch2', 64, 8,  3, 64, 'Sigmoid',   0.1, 0.1, 0.005, 3e-1, 0.9, 0.999, 0),
 
         ]
 
 round2_experiments = []
 for batchsize in 16, 64, 256:
     for activation in 'LeakyReLU', 'Sigmoid':
-        for hrr_size in 64, 128, 256, 512:
+        for hrr_size in 64, 128, 256, 512, 1024:
             for num_decoders in 16, 32, 64, 128:
                 for num_classifier_layers in 2, 3:
-                    for LR in 1e-3, 3e-4, 1e-4:
-                        round2_experiments.append(
-                            ExperimentSettings(
-                                'Round2-{}-B{}H{}D{}L{}{}'.format(
-                                    LR, batchsize, hrr_size, num_decoders, num_classifier_layers, activation),
-                                batchsize,
-                                hrr_size,
-                                num_decoders,
-                                num_classifier_layers,
-                                64,
-                                activation,
-                                0.1,
-                                0.1,
-                                0.005,
-                                LR,
-                                0.9,
-                                0.999,
-                                0))
+                    for mlp_reg in 0.003, 0.001, 0.0003:
+                        for LR in 1e-3, 3e-4, 1e-4:
+                            for hrr_class in 'FlatTreeHRRTorch2', 'FlatTreeHRRTorchComp':
+                                round2_experiments.append(
+                                    ExperimentSettings(
+                                        'Round2-{}-B{}H{}D{}L{}{}G{}LR{}'.format(
+                                            hrr_class, batchsize, hrr_size, num_decoders, num_classifier_layers, activation, mlp_reg, LR),
+                                        batchsize,
+                                        hrr_class,
+                                        hrr_size,
+                                        num_decoders,
+                                        num_classifier_layers,
+                                        64,
+                                        activation,
+                                        0.1,
+                                        0.1,
+                                        mlp_reg,
+                                        LR,
+                                        0.9,
+                                        0.999,
+                                        0))
 
-# Round 2 experiments (randomly keep 20 of them)
-round2_experiments = datautils.shuffle_by_hash(round2_experiments)[:20]
+# Round 2 experiments (randomly keep 40 of them)
+round2_experiments = datautils.shuffle_by_hash(round2_experiments)[:40]
 
 experiments = model_experiments + adam_experiments + round2_experiments
 
@@ -135,8 +139,12 @@ def make_model(experimentsettings):
     num_classifier_layers = experimentsettings.num_classifier_layers
     num_classifier_hidden_neurons = experimentsettings.num_classifier_hidden_neurons
     classifier_nonlinearity = experimentsettings.classifier_nonlinearity
-    hrrmodel = HRRTorch.FlatTreeHRRTorch2(hrr_size)
-    featurizer = HRRClassifier.Decoder_featurizer(hrr_size, num_decoders)
+    if experimentsettings.hrr_class == 'FlatTreeHRRTorch2':
+        hrrmodel = HRRTorch.FlatTreeHRRTorch2(hrr_size)
+        featurizer = HRRClassifier.Decoder_featurizer(hrr_size, num_decoders)
+    elif experimentsettings.hrr_class == 'FlatTreeHRRTorchComp':
+        hrrmodel = HRRTorch.FlatTreeHRRTorchComp(hrr_size)
+        featurizer = HRRClassifier.DecoderComp_featurizer(hrr_size, num_decoders)
     nonlinearity = {
             'Sigmoid': nn.Sigmoid(),
             'LeakyReLU': nn.LeakyReLU(),
@@ -186,7 +194,7 @@ if __name__ == '__main__':
     experiment_id = int(settings['<experiment_id>'])
     experimentsettings = experiments[experiment_id]
 
-    if '--train-settings' in settings:
+    if '--train-settings' in settings and settings['--train-settings'] is not None:
         trainsettings = {
                 key.strip(): int(value.strip())
                 for pair in settings['--train-settings'].split(',')

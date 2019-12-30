@@ -168,15 +168,30 @@ def train(
 
             dist.barrier()
 
-            if rank == 0:
-                batch__ = list(batch__)
-                epoch = [point[0] for point in batch__][0]
+            batch__ = list(batch__)
 
-                for point in batch__:
+            # Why do batching when most of the time is spent computing gradients?
+            # The runtime of the forward direction is roughly linear in the number of created tensors,
+            # thanks to caching
+            # So by making each process spend roughly more equal amounts of time in the forward direction,
+            # we indirectly make the # of created tensors more equal,
+            # which indirectly makes the time spent computing gradients more equal.
+            # The speed up isn't perfect, but it's still a speedup (3x speedup on 8 cores for relatively small batch sizes like 64)
+            # Speed up will be better if the forward direction takes more time than the backward direction,
+            # so speed up should be better on larger batch sizes.
+
+            # Make sure that every process gets at least one point
+            firstpoint = batch__[rank][1]
+
+            if rank == 0:
+                epoch = batch__[0][0]
+
+                # Put the remaining points in the queue
+                for point in batch__[world_size:]:
                     batch_queue.put(point[1])
 
             # Make sure everything sees something in the queue
-            while batch_queue.empty():
+            while batch_queue.empty() or batch_queue.qsize() == 0:
                 continue
 
             dist.barrier()
@@ -205,6 +220,10 @@ def train(
             batchx = []
             batchy = []
             preds = []
+
+            batchx.append(firstpoint[0])
+            batchy.append(firstpoint[1])
+            preds.append(model([firstpoint[0]]))
 
             while True:
                 try:

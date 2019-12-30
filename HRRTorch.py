@@ -11,6 +11,10 @@ def normalize(vec):
     """ Normalize a vector """
     return vec / vec.norm()
 
+def normalize_comp(cvec):
+    """ Normalize a complex vector """
+    return cvec / cvec.norm()
+
 def associate(x, y):
     """ Create association between two objects """
     x = torch.cat([x[1:], x])
@@ -19,13 +23,26 @@ def associate(x, y):
     z = zz.reshape(-1)
     return normalize(z)
 
+def associate_comp(x, y):
+    """ Create association between two complex objects """
+    return torch.cat([x[:1] * y[:1] - x[1:] * y[1:], x[:1] * y[1:] + x[1:] * y[:1]])
+
 def decode(x, xy):
-    """ Create association between two objects """
+    """ Decode association between two objects """
     return associate(torch.cat([x[0:1], x[-1:1:-1]]), xy)
+
+def decode_comp(x, xy):
+    """ Decode association between two complex objects """
+    return associate_comp(torch.cat([x[:1], -x[1:]]), xy)
 
 def merge2(x, y, weight=0.5):
     """ Merge two associations together """
     z = normalize(weight * x + (1-weight) * y)
+    return z
+
+def merge2_comp(x, y, weight=0.5):
+    """ Merge two complex associations together """
+    z = normalize_comp(weight * x + (1-weight) * y)
     return z
 
 def merge(it):
@@ -35,6 +52,14 @@ def merge(it):
         s = s + i
     s = normalize(s)
     return normalize(s)
+
+def merge_comp(it):
+    """ Merge a bag of complex associations together """
+    s = it[0]
+    for i in it[1:]:
+        s = s + i
+    s = normalize_comp(s)
+    return s
 
 class HRRTorch(nn.Module):
     """ Interface for HRR manipulations """
@@ -404,4 +429,191 @@ class FlatTreeHRRTorch2(FlatTreeHRRTorch):
 # class TreeHRR(HRR):
 
 # class FlatTreeHRR(HRR):
+
+class FlatTreeHRRTorchComp(HRRTorch):
+
+    def __init__(self, hrr_size):
+        super(FlatTreeHRRTorchComp, self).__init__(hrr_size)
+
+        fixed_encodings = dict()
+        specifier_variances = dict()
+        ground_vec_merge_ratios = dict()
+
+        specifier_dict = {
+                '!Var': 1,
+                '!Const': 1,
+                '!Dist': 1,
+                '!Func': 2,
+                '!Arg': 3,
+                '!Left': 1,
+                '!Right': 1,
+                '!DisjRole': 1,
+                }
+
+        for specifier, arity in specifier_dict.items():
+            fixed_enc = nn.Parameter(torch.empty((2, self.hrr_size)))
+            fixed_encodings[specifier] = fixed_enc
+
+            for i in range(arity):
+                var = nn.Parameter(torch.empty((2, self.hrr_size)))
+                specifier_variances['var_{}_{}'.format(specifier, i)] = var
+
+                merge_ratio = nn.Parameter(torch.Tensor(2))
+                ground_vec_merge_ratios['ground_{}_{}'.format(specifier, i)] = merge_ratio
+
+        self.fixed_encodings = nn.ParameterDict(fixed_encodings)
+        self.specifier_variances = nn.ParameterDict(specifier_variances)
+        self.ground_vec_merge_ratios = nn.ParameterDict(ground_vec_merge_ratios)
+
+
+        self.func_weights = nn.Parameter(torch.Tensor(3))
+        self.eq_weights = nn.Parameter(torch.Tensor(6))
+        self.disj_weights = nn.Parameter(torch.Tensor(3))
+        self.conj_weights = nn.Parameter(torch.Tensor(2))
+
+        for p in self.fixed_encodings.values():
+            nn.init.normal_(p)
+            with torch.no_grad():
+                p /= p.norm()
+        for p in self.specifier_variances.values():
+            nn.init.uniform_(p)
+        for p in [
+                *self.ground_vec_merge_ratios.values(),
+                self.func_weights,
+                self.eq_weights,
+                self.disj_weights,
+                self.conj_weights,
+                ]:
+            nn.init.uniform_(p)
+            with torch.no_grad():
+                p /= p.sum()
+
+    def cache_clear(self):
+        super(FlatTreeHRRTorchComp, self).cache_clear()
+
+        self.get_ground_vector.cache_clear()
+        self.var.cache_clear()
+        self.const.cache_clear()
+        self.dist.cache_clear()
+        self.func.cache_clear()
+        self.eq.cache_clear()
+        self.disj.cache_clear()
+        self.conj.cache_clear()
+
+    @functools.lru_cache()
+    def get_ground_vector(self, label):
+        """ Deterministically generate a random vector from its label """
+
+        if ':' in label:
+            # This is an identifier
+
+            parent, _, specifier = label.rpartition(':')
+            top, _, _ = parent.partition(':')
+            parentvec = self.get_ground_vector(parent)
+
+            rs = np.random.RandomState(
+                    zlib.adler32(
+                        (str(self.hrr_size)+label).encode('utf-8')
+                        ) & 0xffffffff)
+            rs.randint(2)
+
+            specifier_vec = normalize_comp(
+                    self.specifier_variances['var_{}_{}'.format(top, parent.count(':'))] *
+                    torch.tensor(rs.standard_normal((2, self.hrr_size))).float())
+
+            newvec = normalize_comp(
+                    self.ground_vec_merge_ratios['ground_{}_{}'.format(top, parent.count(':'))] @
+                    torch.cat([
+                        parentvec,
+                        specifier_vec,
+                        ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+
+            return newvec
+        else:
+            # Top level terms are fixed encodings
+
+            return normalize_comp(self.fixed_encodings[label])
+
+    @functools.lru_cache()
+    def var(self, name):
+        """ Output a HRR vector given a variable name """
+        return self.get_ground_vector('!Var:{}'.format(name))
+
+    @functools.lru_cache()
+    def const(self, name):
+        """ Output a HRR vector given a constant name """
+        return self.get_ground_vector('!Const:{}'.format(name))
+
+    @functools.lru_cache()
+    def dist(self, name):
+        """ Output a HRR vector given a distinct object name """
+        return self.get_ground_vector('!Dist:{}'.format(name))
+
+    @functools.lru_cache()
+    def func(self, name, vecs):
+        """ Output a HRR vector given function name and HRR vectors of its inputs """
+        arity = len(vecs)
+        funcobj = self.get_ground_vector('!Func:{}:{}'.format(arity, name))
+
+        argobjs = [
+                associate_comp(
+                    self.get_ground_vector('!Arg:{}:{}:{}'.format(arity, name, i)),
+                    vec)
+                for i, vec in enumerate(vecs) ]
+
+        result = normalize_comp(
+                self.func_weights @
+                torch.cat([
+                    funcobj,
+                    merge(argobjs),
+                    merge(vecs),
+                    ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+
+        return result
+
+    @functools.lru_cache()
+    def eq(self, pos, vec1, vec2):
+        """ Output a HRR vector given positivity of this literal (literals are equations), and HRR vectors of the left and right sides """
+        leftobj = associate_comp(self.get_ground_vector('!Left:{}'.format(pos)), vec1)
+        rightobj = associate_comp(self.get_ground_vector('!Right:{}'.format(pos)), vec2)
+        result = normalize_comp(
+                self.eq_weights @
+                torch.cat([
+                    leftobj,
+                    rightobj,
+                    associate_comp(leftobj, rightobj),
+                    vec1,
+                    vec2,
+                    associate_comp(vec2, vec2),
+                    ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+
+        return result
+
+    @functools.lru_cache()
+    def disj(self, role, vecs):
+        """ Output a HRR vector given role of this clause, and HRR vectors of all the literals """
+        roleobj = self.get_ground_vector('!DisjRole:{}'.format(role))
+        objs = [ associate_comp(roleobj, vec) for vec in vecs ]
+        mergedobjs = merge_comp(objs)
+        mergedvecs = merge_comp(vecs)
+        disjobj = associate_comp(mergedobjs, mergedobjs) # Essentially associates each literal with each other
+        return normalize_comp(
+                self.disj_weights @
+                torch.cat([
+                    disjobj,
+                    mergedobjs,
+                    mergedvecs,
+                    ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+
+    @functools.lru_cache()
+    def conj(self, vecs):
+        """ Output a HRR vector given HRR vectors of all the clauses """
+        mergedvecs = merge_comp(vecs)
+        conjobj = associate_comp(mergedvecs, mergedvecs)
+        return normalize_comp(
+                self.conj_weights @
+                torch.cat([
+                    conjobj,
+                    mergedvecs,
+                    ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
 
