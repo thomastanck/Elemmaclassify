@@ -43,42 +43,82 @@ def log_stats(writer, stats, global_counter):
     writer.add_scalar('Recall/train', recall, global_counter)
     writer.add_scalar('F-Score/train', fscore, global_counter)
 
-def log_crossval(writer, model, parallelmodel, loss_func, get_crossval, batchsize, global_counter):
-    print('(i: {}) Testing cross-validation set'.format(global_counter))
+def log_crossval(rank, world_size, model, loss_func, get_crossval, batch_queue, batchsize, global_counter):
     stats = datautils.Stats()
-
-    batch_iterator = utils.group_into(get_crossval(), batchsize)
-
-    errloss = torch.tensor(0.)
-    regloss = torch.tensor(0.)
 
     with torch.no_grad():
         count = 0
-        for batchnum, batch in enumerate(batch_iterator):
-            print('(i: {}) Cross-validation batch #{}'.format(global_counter, batchnum))
+        crossval_iter = get_crossval()
+        firstbatch = list(itertools.islice(crossval_iter, world_size))
+        count += world_size
 
-            batchx = [point[0] for point in batch]
-            batchy = [point[1] for point in batch]
+        def is_nonempty(iterable):
+            try:
+                first = next(iterable)
+            except StopIteration:
+                return False, itertools.chain([]) # return empty iterable
+            return True, itertools.chain([first], iterable)
 
-            preds = parallelmodel(batchx)
+        errloss = torch.tensor(0.)
+        regloss = torch.tensor(0.)
 
-            for pred, y in zip(preds, batchy):
-                stats = datautils.update_stats(stats, bool(pred > 0), y)
+        firstpoint = firstbatch[rank]
 
-            target = torch.tensor([1. if y else 0. for y in batchy])
-            losses = loss_func(preds, target)
-            errloss += losses[0]
-            regloss += losses[1]
-            count += 1
+        nonempty, crossval_iter = is_nonempty(crossval_iter)
 
-    writer.add_scalar('Err-Loss/crossval', errloss / count, global_counter)
-    writer.add_scalar('Reg-Loss/crossval', regloss / count, global_counter)
+        if rank == 0:
+            # Put the remaining points in the queue
+            for point in crossval_iter:
+                batch_queue.put(point)
+                count += 1
 
-    acc, precision, recall, fscore = datautils.calc_stats(stats)
-    writer.add_scalar('Accuracy/crossval', acc, global_counter)
-    writer.add_scalar('Precision/crossval', precision, global_counter)
-    writer.add_scalar('Recall/crossval', recall, global_counter)
-    writer.add_scalar('F-Score/crossval', fscore, global_counter)
+        # If the queue is meant to be populated,
+        # make sure everyone sees something in the queue before starting
+        if nonempty:
+            while batch_queue.empty() or batch_queue.qsize() == 0:
+                continue
+
+            dist.barrier()
+
+        batchx = []
+        batchy = []
+        preds = []
+
+        batchx.append(firstpoint[0])
+        batchy.append(firstpoint[1])
+        preds.append(model([firstpoint[0]]))
+
+        while True:
+            try:
+                point = batch_queue.get(block=False)
+                batchx.append(point[0])
+                batchy.append(point[1])
+                preds.append(model([point[0]]))
+            except:
+                if batch_queue.qsize() == 0 and batch_queue.empty():
+                    break
+
+        preds = torch.cat(preds)
+
+        for pred, y in zip(preds, batchy):
+            stats = datautils.update_stats(stats, bool(pred > 0), y)
+
+        target = torch.tensor([1. if y else 0. for y in batchy])
+        errloss, regloss = loss_func(preds, target)
+        errloss *= len(batchx)
+        dist.all_reduce(errloss)
+        errloss /= count
+
+        acc, precision, recall, fscore = datautils.calc_stats(stats)
+
+        return errloss, regloss, acc, precision, recall, fscore
+
+        writer.add_scalar('Err-Loss/crossval', errloss, global_counter)
+        writer.add_scalar('Reg-Loss/crossval', regloss, global_counter)
+        writer.add_scalar('Accuracy/crossval', acc, global_counter)
+        writer.add_scalar('Precision/crossval', precision, global_counter)
+        writer.add_scalar('Recall/crossval', recall, global_counter)
+        writer.add_scalar('F-Score/crossval', fscore, global_counter)
 
 def log_weights(writer, model, global_counter):
     for name, weight in model.named_parameters():
@@ -147,8 +187,6 @@ def train(
     save_every_i_batches = trainsettings.save_every_i_batches
     weights_every_i_batches = trainsettings.weights_every_i_batches
 
-    parallelmodel = model
-
     if rank == 0:
         writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
 
@@ -161,14 +199,43 @@ def train(
         prev_epoch = 0
 
         for batchnum, batch__ in enumerate(batch_iterator):
+            batch__ = list(batch__)
+            epoch = batch__[0][0]
+
+            if rank == 0:
+                print('(i: {}) Training batch #{}'.format(global_counter, batchnum))
+
+            if rank == 0 and batchnum % save_every_i_batches == 0:
+                save_model(model, save_dir, short_git_hash, experiment_name, global_counter)
+
+            if epoch > prev_epoch:
+                if rank == 0:
+                    print('(i: {}) Testing cross-validation set'.format(global_counter))
+                prev_epoch = epoch
+
+                errloss, regloss, acc, precision, recall, fscore = log_crossval(rank, world_size, model, loss_func, get_crossval, batch_queue, testingbatchsize, global_counter)
+
+                if rank == 0:
+                    writer.add_scalar('Err-Loss/crossval', errloss, global_counter)
+                    writer.add_scalar('Reg-Loss/crossval', regloss, global_counter)
+                    writer.add_scalar('Accuracy/crossval', acc, global_counter)
+                    writer.add_scalar('Precision/crossval', precision, global_counter)
+                    writer.add_scalar('Recall/crossval', recall, global_counter)
+                    writer.add_scalar('F-Score/crossval', fscore, global_counter)
+
+            if rank == 0 and batchnum % stats_every_i_batches == 0:
+                log_stats(writer, stats, global_counter)
+                stats = datautils.Stats()
+
+            if rank == 0 and batchnum % weights_every_i_batches == 0:
+                log_weights(writer, model, global_counter)
+
             # batch__ = list(batch__)
             # batch_ = list(batch__[rank::world_size])
             # epoch = [point[0] for point in batch__][0]
             # batch = [point[1] for point in batch_]
 
             dist.barrier()
-
-            batch__ = list(batch__)
 
             # Why do batching when most of the time is spent computing gradients?
             # The runtime of the forward direction is roughly linear in the number of created tensors,
@@ -184,8 +251,6 @@ def train(
             firstpoint = batch__[rank][1]
 
             if rank == 0:
-                epoch = batch__[0][0]
-
                 # Put the remaining points in the queue
                 for point in batch__[world_size:]:
                     batch_queue.put(point[1])
@@ -197,23 +262,6 @@ def train(
                     continue
 
                 dist.barrier()
-
-            if rank == 0 and batchnum % save_every_i_batches == 0:
-                save_model(model, save_dir, short_git_hash, experiment_name, global_counter)
-
-            if rank == 0 and epoch > prev_epoch:
-                prev_epoch = epoch
-                log_crossval(writer, model, parallelmodel, loss_func, get_crossval, testingbatchsize, global_counter)
-
-            if rank == 0:
-                print('(i: {}) Training batch #{}'.format(global_counter, batchnum))
-
-            if rank == 0 and batchnum % stats_every_i_batches == 0:
-                log_stats(writer, stats, global_counter)
-                stats = datautils.Stats()
-
-            if rank == 0 and batchnum % weights_every_i_batches == 0:
-                log_weights(writer, model, global_counter)
 
             # batchx = [point[0] for point in batch]
             # batchy = [point[1] for point in batch]
@@ -243,7 +291,6 @@ def train(
                 with torch.no_grad():
                     stats = datautils.update_stats(stats, bool(pred > 0), y)
 
-            global_counter += len(batch__)
             target = torch.tensor([1. if y else 0. for y in batchy])
             errloss, regloss = loss_func(preds, target)
             errloss.backward()
@@ -262,6 +309,7 @@ def train(
 
             dist.barrier()
 
+            global_counter += len(batch__)
             if rank == 0:
                 opt.step()
             opt.zero_grad()
