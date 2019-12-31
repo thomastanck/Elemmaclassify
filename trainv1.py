@@ -190,11 +190,13 @@ def train(
                 for point in batch__[world_size:]:
                     batch_queue.put(point[1])
 
-            # Make sure everything sees something in the queue
-            while batch_queue.empty() or batch_queue.qsize() == 0:
-                continue
+            # If the queue is meant to be populated,
+            # make sure everyone sees something in the queue before starting
+            if len(batch__) > world_size:
+                while batch_queue.empty() or batch_queue.qsize() == 0:
+                    continue
 
-            dist.barrier()
+                dist.barrier()
 
             if rank == 0 and batchnum % save_every_i_batches == 0:
                 save_model(model, save_dir, short_git_hash, experiment_name, global_counter)

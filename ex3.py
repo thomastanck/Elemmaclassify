@@ -208,6 +208,10 @@ if __name__ == '__main__':
 
     trainsettings = trainv1.TrainSettings()._replace(**trainsettings)
 
+    if trainsettings.num_procs > experimentsettings.batchsize:
+        print('num_procs too large. Setting num_procs to', experimentsettings.batchsize, 'to match batchsize')
+        trainsettings._replace(num_procs=experimentsettings.batchsize)
+
     torch.manual_seed(42)
 
     model = make_model(experimentsettings)
