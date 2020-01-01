@@ -210,7 +210,7 @@ if __name__ == '__main__':
 
     if trainsettings.num_procs > experimentsettings.batchsize:
         print('num_procs too large. Setting num_procs to', experimentsettings.batchsize, 'to match batchsize')
-        trainsettings._replace(num_procs=experimentsettings.batchsize)
+        trainsettings = trainsettings._replace(num_procs=experimentsettings.batchsize)
 
     torch.manual_seed(42)
 
