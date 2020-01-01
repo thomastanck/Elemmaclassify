@@ -2,6 +2,7 @@ import collections
 import itertools
 import datetime
 import json
+import queue
 
 import torch
 import torch.nn as nn
@@ -23,6 +24,7 @@ TrainSettings = collections.namedtuple(
         weights_every_i_batches
         save_every_i_batches
         crossval_every_i_batches
+        start_from_batch
         ''')
 
 TrainSettings.__new__.__defaults__ = (
@@ -34,6 +36,7 @@ TrainSettings.__new__.__defaults__ = (
         5,
         50,
         50,
+        0,
         )
 
 def log_stats(writer, stats, global_counter):
@@ -135,13 +138,20 @@ def log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsett
             'train version': 'trainv1',
             }, f, indent=4, sort_keys=True)
 
-def save_model(model, save_dir, short_git_hash, experiment_name, global_counter):
-    model_filename = '{}/trainv1-{}-{}-{}.model'.format(save_dir, short_git_hash, experiment_name, global_counter)
-    statedict_filename = '{}/trainv1-{}-{}-{}.statedict'.format(save_dir, short_git_hash, experiment_name, global_counter)
-    print('(i: {}) Saving model to {}'.format(global_counter, model_filename))
+    lossfunc_filename = '{}/trainv1-{}-{}.lossfunc'.format(save_dir, short_git_hash, experiment_name)
+    torch.save(loss_func, lossfunc_filename)
 
-    torch.save(model.state_dict(), statedict_filename)
+def save_model(model, opt, save_dir, short_git_hash, experiment_name, epoch, global_counter):
+    model_filename = '{}/trainv1-{}-{}-{}.model'.format(save_dir, short_git_hash, experiment_name, global_counter)
+    optim_filename = '{}/trainv1-{}-{}-{}.optim'.format(save_dir, short_git_hash, experiment_name, global_counter)
+    modelstatedict_filename = model_filename + '.statedict'
+    optimstatedict_filename = optim_filename + '.statedict'
+    print('(e: {} i: {}) Saving model to {}'.format(epoch, global_counter, model_filename))
+
+    torch.save(model.state_dict(), modelstatedict_filename)
+    torch.save(opt.state_dict(), optimstatedict_filename)
     torch.save(model, model_filename)
+    torch.save(opt, optim_filename)
 
 def train(
         rank,
@@ -156,6 +166,8 @@ def train(
         batch_queue,
         experimentsettings,
         trainsettings={},
+        git_hash=None,
+        timestring=None,
         ):
     """ The big train function with all the settings """
 
@@ -166,17 +178,14 @@ def train(
     if not utils.is_git_clean():
         raise RuntimeError('Ensure that all changes have been committed!')
 
-    git_hash = utils.git_hash()
+    git_hash = utils.git_hash() if git_hash is None else git_hash
     short_git_hash = git_hash[:7]
 
     # Start time string
     now = datetime.datetime.now()
-    timestring = now.strftime('%Y%m%d%a-%H%M%S')
+    timestring = now.strftime('%Y%m%d%a-%H%M%S') if timestring is None else timestring
 
     experiment_name = '{}-{}'.format(experiment_name, timestring)
-
-    # Log experiment information
-    log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings)
 
     batchsize = experimentsettings.batchsize
 
@@ -186,6 +195,11 @@ def train(
     stats_every_i_batches = trainsettings.stats_every_i_batches
     save_every_i_batches = trainsettings.save_every_i_batches
     weights_every_i_batches = trainsettings.weights_every_i_batches
+    start_from_batch = trainsettings.start_from_batch
+
+    # Log experiment information
+    if start_from_batch == 0:
+        log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings)
 
     if rank == 0:
         writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
@@ -195,23 +209,26 @@ def train(
         dataset_iterator = ((epoch, point) for epoch in epoch_iterator for point in get_train())
         batch_iterator = utils.group_into(dataset_iterator, batchsize)
         stats = datautils.Stats()
-        global_counter = 0
-        prev_epoch = 0
+        global_counter = batchsize * start_from_batch
+        epoch = None
 
-        for batchnum, batch__ in enumerate(batch_iterator):
+        for batchnum, batch__ in itertools.islice(enumerate(batch_iterator), start_from_batch, None):
             batch__ = list(batch__)
-            epoch = batch__[0][0]
+            cur_epoch = batch__[0][0]
 
             if rank == 0:
-                print('(i: {}) Training batch #{}'.format(global_counter, batchnum))
+                print('(e: {} i: {}) Training batch #{}'.format(epoch, global_counter, batchnum))
 
             if rank == 0 and batchnum % save_every_i_batches == 0:
-                save_model(model, save_dir, short_git_hash, experiment_name, global_counter)
+                save_model(model, opt, save_dir, short_git_hash, experiment_name, epoch, global_counter)
 
-            if epoch > prev_epoch:
+            if epoch is None:
+                epoch = cur_epoch
+
+            if cur_epoch > epoch:
                 if rank == 0:
-                    print('(i: {}) Testing cross-validation set'.format(global_counter))
-                prev_epoch = epoch
+                    print('(e: {} i: {}) Testing cross-validation set'.format(epoch, global_counter))
+                epoch = cur_epoch
 
                 errloss, regloss, acc, precision, recall, fscore = log_crossval(rank, world_size, model, loss_func, get_crossval, batch_queue, testingbatchsize, global_counter)
 
@@ -232,7 +249,7 @@ def train(
 
             # batch__ = list(batch__)
             # batch_ = list(batch__[rank::world_size])
-            # epoch = [point[0] for point in batch__][0]
+            # cur_epoch = [point[0] for point in batch__][0]
             # batch = [point[1] for point in batch_]
 
             dist.barrier()
@@ -271,17 +288,19 @@ def train(
             batchy = []
             preds = []
 
+            firstpred = model([firstpoint[0]])
             batchx.append(firstpoint[0])
             batchy.append(firstpoint[1])
-            preds.append(model([firstpoint[0]]))
+            preds.append(firstpred)
 
             while True:
                 try:
                     point = batch_queue.get(block=False)
+                    pred = model([point[0]])
                     batchx.append(point[0])
                     batchy.append(point[1])
-                    preds.append(model([point[0]]))
-                except:
+                    preds.append(pred)
+                except queue.Empty:
                     if batch_queue.qsize() == 0 and batch_queue.empty():
                         break
 
@@ -303,16 +322,17 @@ def train(
             regloss.backward()
 
             if rank == 0 and batchnum % loss_every_i_batches == 0:
-                print('(i: {}) Loss: {:.5f}\t{:.5f}'.format(global_counter, errloss.item(), regloss.item()))
+                print('(e: {} i: {}) Loss: {:.5f}\t{:.5f}'.format(epoch, global_counter, errloss.item(), regloss.item()))
                 writer.add_scalar('Err-Loss/train', errloss.item(), global_counter)
                 writer.add_scalar('Reg-Loss/train', regloss.item(), global_counter)
 
             dist.barrier()
 
-            global_counter += len(batch__)
             if rank == 0:
                 opt.step()
             opt.zero_grad()
+
+            global_counter += len(batch__)
 
     except KeyboardInterrupt:
         pass

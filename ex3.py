@@ -2,10 +2,12 @@
 Experiment 3 runner
 
 Usage:
-    ex3.py <experiment_id> [--train-settings=<trainsettings>]
+    ex3.py <experiment_id> [--train-settings=<trainsettings>] [--git_hash=<git_hash> --timestring=<timestring>]
 
 Options:
-    --trainsettings=<trainsettings>  Comma separated list of key:value pairs.
+    --train-settings=<trainsettings>  Comma separated list of key:value pairs.
+    --git_hash=<git_hash>             If starting from saved model, the full git commit hash of the commit that ran this model.
+    --timestring=<timestring>         If starting from saved model, the time string used when saving these models.
 '''
 
 import sys
@@ -172,7 +174,7 @@ def make_opt(model, experimentsettings):
 
     return optim.Adam(model.parameters(), lr=lr, betas=(beta1, beta2), weight_decay=weight_decay)
 
-def main(rank, world_size, model, loss_func, opt, batch_queue, experiment_id, trainsettings, experimentsettings):
+def main(rank, world_size, model, loss_func, opt, batch_queue, experiment_id, trainsettings, experimentsettings, git_hash=None, timestring=None):
     trainv1.train(
             rank,
             world_size,
@@ -186,6 +188,8 @@ def main(rank, world_size, model, loss_func, opt, batch_queue, experiment_id, tr
             batch_queue,
             experimentsettings,
             trainsettings,
+            git_hash,
+            timestring,
             )
 
 if __name__ == '__main__':
@@ -194,7 +198,7 @@ if __name__ == '__main__':
     experiment_id = int(settings['<experiment_id>'])
     experimentsettings = experiments[experiment_id]
 
-    if '--train-settings' in settings and settings['--train-settings'] is not None:
+    if settings['--train-settings'] is not None:
         trainsettings = {
                 key.strip(): int(value.strip())
                 for pair in settings['--train-settings'].split(',')
@@ -214,20 +218,52 @@ if __name__ == '__main__':
 
     torch.manual_seed(42)
 
-    model = make_model(experimentsettings)
-    loss_func = make_loss(model, experimentsettings)
-    opt = make_opt(model, experimentsettings)
+    if settings['--git_hash'] is not None:
+        git_hash = settings['--git_hash']
+        global_counter = trainsettings.start_from_batch * experimentsettings.batchsize
+        timestring = settings['--timestring']
 
-    mp.spawn(
-            main,
-            args=(
-                trainsettings.num_procs,
-                model, loss_func, opt,
-                mp.get_context('spawn').Queue(),
-                experiment_id,
-                trainsettings,
-                experimentsettings,
-                ),
-            nprocs=trainsettings.num_procs,
-            )
+        short_git_hash = git_hash[:7]
+        experiment_name = 'ex3-{}-{}-{}'.format(experiment_id, experimentsettings.comment, timestring)
+
+        model_filename = '{}/trainv1-{}-{}-{}.model'.format('ex3data', short_git_hash, experiment_name, global_counter)
+        optimstatedict_filename = '{}/trainv1-{}-{}-{}.optim.statedict'.format('ex3data', short_git_hash, experiment_name, global_counter)
+        model = torch.load(model_filename)
+        loss_func = make_loss(model, experimentsettings)
+        opt = make_opt(model, experimentsettings)
+        optstatedict = torch.load(optimstatedict_filename)
+        opt.load_state_dict(optstatedict)
+
+        mp.spawn(
+                main,
+                args=(
+                    trainsettings.num_procs,
+                    model, loss_func, opt,
+                    mp.get_context('spawn').Queue(),
+                    experiment_id,
+                    trainsettings,
+                    experimentsettings,
+                    git_hash,
+                    timestring,
+                    ),
+                nprocs=trainsettings.num_procs,
+                )
+
+    else:
+        model = make_model(experimentsettings)
+        loss_func = make_loss(model, experimentsettings)
+        opt = make_opt(model, experimentsettings)
+
+        mp.spawn(
+                main,
+                args=(
+                    trainsettings.num_procs,
+                    model, loss_func, opt,
+                    mp.get_context('spawn').Queue(),
+                    experiment_id,
+                    trainsettings,
+                    experimentsettings,
+                    ),
+                nprocs=trainsettings.num_procs,
+                )
 
