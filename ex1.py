@@ -13,11 +13,13 @@ import sklearn.svm as svm
 import sklearn.preprocessing as pre
 import sklearn.linear_model as lm
 
+import xgboost
+
 @functools.lru_cache(maxsize=1)
 def parse_problem(problemname):
     return parse.parse_cnf_file('E_conj/problems/{}'.format(problemname))
 
-@utils.persist_to_file('ex1data/usefulness.pickle')
+@utils.persist_to_file_strparams('ex1data/usefulness.pickle')
 def get_usefulness():
     print('getting usefulness')
     with open('E_conj/statistics', 'r') as f:
@@ -37,11 +39,11 @@ def get_usefulness():
 @functools.lru_cache(maxsize=1)
 def problem_hrr(problemname):
     print('getting problem hrr for {}'.format(problemname))
-    return HRR.FlatTreeHRR.encode_conj(parse_problem(problemname))
+    return HRR.FlatTreeHRR.fold_term(parse_problem(problemname))
 
 def lemma_hrr(lemmastr):
     print('getting lemma hrr for {}'.format(lemmastr[:30]))
-    return HRR.FlatTreeHRR.encode_disj(parse.parse_cnf_clause(lemmastr))
+    return HRR.FlatTreeHRR.fold_term(parse.parse_cnf_clause(lemmastr))
 
 # problem -> lemmaname -> psr
 # usefulness = get_usefulness()
@@ -67,22 +69,63 @@ def get_lemmanames():
     return sorted(list(lemmanames))
 
 @functools.lru_cache(maxsize=None)
-def get_hrr_encoder(hrr_class, hrr_size):
-    return HRR.FlatTreeHRR(hrr_size)
+def get_hrr_encoder(hrr_class, hrr_size, **hrr_args):
+    return HRR.FlatTreeHRR(hrr_size, **hrr_args)
 
 def process_problem(args):
-    hrr_class, hrr_size, pname = args
+    hrr_class, hrr_size, hrr_args, pname = args
     return (pname,
-            get_hrr_encoder(hrr_class, hrr_size).encode_conj(
+            get_hrr_encoder(hrr_class, hrr_size, **hrr_args).fold_term(
                 parse.parse_cnf_file('E_conj/problems/{}'.format(pname))))
 
 def process_lemma(args):
-    hrr_class, hrr_size, pname, lname, lemma = args
+    hrr_class, hrr_size, hrr_args, pname, lname, lemma = args
     return (pname, lname,
-            get_hrr_encoder(hrr_class, hrr_size).encode_disj(
+            get_hrr_encoder(hrr_class, hrr_size, **hrr_args).fold_term(
                 parse.parse_cnf_clause(lemma)))
 
-@utils.persist_to_file('ex1data/hrrs-{}.pickle')
+@utils.persist_to_file_strparams('ex1data/comphrrs-{1}.pickle')
+def get_hrrs_complex(hrr_class, hrr_size):
+    import multiprocessing as mp
+
+    print('getting hrrs')
+    # problem -> hrr
+    problemhrrs = dict()
+    # problem -> lemmaname -> hrr
+    lemmahrrs = collections.defaultdict(dict)
+
+    def get_lemmas():
+        with open('E_conj/lemmas') as f:
+            for l in f:
+                name, lemma = l.split(':')
+                _, problemname, lemmaname = name.split('/')
+                yield (problemname, lemmaname, lemma)
+
+    pool = mp.Pool()
+
+    i = 0
+    for pname, hrr in pool.imap_unordered(
+            process_problem,
+            ((hrr_class, hrr_size, {'complex_hrr': True}, pname) for pname in get_problemnames())):
+        print(i, pname)
+        i += 1
+        hrr = np.concatenate((hrr.real, hrr.imag))
+        problemhrrs[pname] = hrr
+
+    i = 0
+    for pname, lname, hrr in pool.imap_unordered(
+            process_lemma,
+            ((hrr_class, hrr_size, {'complex_hrr': True}, *args) for args in get_lemmas())):
+        print(i, pname, lname)
+        i += 1
+        hrr = np.concatenate((hrr.real, hrr.imag))
+        lemmahrrs[pname][lname] = hrr
+
+    pool.close()
+
+    return problemhrrs, lemmahrrs
+
+@utils.persist_to_file_strparams('ex1data/hrrs-{1}.pickle')
 def get_hrrs(hrr_class, hrr_size):
     import multiprocessing as mp
 
@@ -104,7 +147,7 @@ def get_hrrs(hrr_class, hrr_size):
     i = 0
     for pname, hrr in pool.imap_unordered(
             process_problem,
-            ((hrr_class, hrr_size, pname) for pname in get_problemnames())):
+            ((hrr_class, hrr_size, {}, pname) for pname in get_problemnames())):
         print(i, pname)
         i += 1
         problemhrrs[pname] = hrr
@@ -112,7 +155,7 @@ def get_hrrs(hrr_class, hrr_size):
     i = 0
     for pname, lname, hrr in pool.imap_unordered(
             process_lemma,
-            ((hrr_class, hrr_size, *args) for args in get_lemmas())):
+            ((hrr_class, hrr_size, {}, *args) for args in get_lemmas())):
         print(i, pname, lname)
         i += 1
         lemmahrrs[pname][lname] = hrr
@@ -133,9 +176,9 @@ def get_training_data(hrr_class, hrr_size, training_size):
     usefulness = get_usefulness()
 
     # Segment training/test data by name
-    problemlemmanames = shuffle_by_hash(get_lemmanames()[:-12000])[:training_size]
+    # problemlemmanames = shuffle_by_hash(get_lemmanames()[:-12000])[:training_size]
     # Segment training/test data by hashed name
-    # problemlemmanames = shuffle_by_hash(get_lemmanames())[:training_size]
+    problemlemmanames = shuffle_by_hash(get_lemmanames())[:training_size]
 
     trainingX = np.array([ np.concatenate((problemhrrs[problemname], lemmahrrs[problemname][lemmaname])) for problemname, lemmaname in problemlemmanames ])
     trainingy = np.array([ 1 if usefulness[problemname][lemmaname] < 1 else 0 for problemname, lemmaname in problemlemmanames ])
@@ -151,9 +194,9 @@ def get_test_data(hrr_class, hrr_size, scaler, test_size):
     usefulness = get_usefulness()
 
     # Segment training/test data by name
-    problemlemmanames = get_lemmanames()[-test_size:]
+    # problemlemmanames = get_lemmanames()[-test_size:]
     # Segment training/test data by hashed name
-    # problemlemmanames = shuffle_by_hash(get_lemmanames())[-test_size:]
+    problemlemmanames = shuffle_by_hash(get_lemmanames())[-test_size:]
 
     testX = np.array([ np.concatenate((problemhrrs[problemname], lemmahrrs[problemname][lemmaname])) for problemname, lemmaname in problemlemmanames ])
     testy = np.array([ 1 if usefulness[problemname][lemmaname] < 1 else 0 for problemname, lemmaname in problemlemmanames ])
@@ -168,7 +211,7 @@ def get_test_data(hrr_class, hrr_size, scaler, test_size):
 
     return testX_scaled, testy, testXpos_scaled, testypos, testXneg_scaled, testyneg
 
-@utils.persist_to_file('ex1data/lrweights-{}.pickle')
+@utils.persist_to_file_strparams('ex1data/lrweights-{}.pickle')
 def train_lr(
         hrr_size=1024,
         training_size=-12000,
@@ -224,7 +267,7 @@ def train_lr(
 
     return scaler, model
 
-@utils.persist_to_file('ex1data/pacweights-{}.pickle')
+@utils.persist_to_file_strparams('ex1data/pacweights-{}.pickle')
 def train_pac(
         hrr_size=1024,
         training_size=-12000,
@@ -279,7 +322,7 @@ def train_pac(
 
     return scaler, model
 
-@utils.persist_to_file('ex1data/svcweights-{}.pickle')
+@utils.persist_to_file_strparams('ex1data/svcweights-{}.pickle')
 def train_svc(
         hrr_size=1024,
         training_size=-12000,
@@ -308,6 +351,91 @@ def train_svc(
 
     return scaler, model
 
+@utils.persist_to_file_strparams('ex1data/mixed-xgbweights-{}.pickle')
+def train_xgb(
+        hrr_size=1024,
+        training_size=-12000,
+        hrr_class=HRR.FlatTreeHRR,
+        params=tuple(sorted(list(xgboost.XGBClassifier().get_params().items())))):
+    """
+    Trains a XGBoost classifier
+
+    with max_depth=3 (default)
+
+    hrr_size, training_size, fscore, precision, recall, acc
+    64        1000           0.286   0.374      0.231   0.585
+    64        5000           0.287   0.404      0.222   0.603
+    64        10000          0.277   0.387      0.215   0.596
+    64        50000          0.122   0.496      0.070   0.640
+    64        -12000         0.082   0.439      0.045   0.636
+
+    with max_depth=32
+
+    hrr_size, training_size, fscore, precision, recall, acc
+    64        1000           0.313   0.389      0.262   0.587
+    64        5000           0.319   0.381      0.273   0.580
+    64        10000          0.314   0.390      0.262   0.588
+    64        50000          0.297   0.420      0.230   0.609
+    64        -12000         0.238   0.462      0.160   0.631
+    256       1000           0.289   0.400      0.226   0.600
+    256       5000           0.227   0.410      0.157   0.616
+    256       10000          0.293   0.333      0.262   0.546
+    256       50000          0.271   0.432      0.197   0.618
+    256       -12000         0.230   0.442      0.155   0.626
+    1024      1000           0.294   0.351      0.253   0.564
+    1024      5000           0.248   0.382      0.184   0.600
+    1024      10000          0.295   0.371      0.244   0.580
+    1024      50000          0.257   0.443      0.181   0.624
+    1024      -12000         0.256   0.488      0.174   0.638
+
+    with max_depth=32, mixed train/test
+
+    hrr_size, training_size, fscore, precision, recall, acc
+    64        1000           0.255   0.358      0.198   0.603
+    64        5000           0.368   0.470      0.303   0.644
+    64        10000          0.410   0.427      0.393   0.611
+    64        50000          0.263   0.383      0.200   0.615
+    64        -12000         0.525   0.562      0.493   0.694
+    256       1000           0.223   0.403      0.154   0.631
+    256       5000           0.213   0.346      0.154   0.610
+    256       10000          0.233   0.302      0.189   0.572
+    256       50000          0.174   0.263      0.130   0.577
+    256       -12000         0.573   0.689      0.491   0.749
+    1024      1000           0.338   0.449      0.272   0.636
+    1024      5000           0.221   0.308      0.173   0.583
+    1024      10000          0.206   0.222      0.193   0.490
+    1024      50000          0.160   0.294      0.110   0.604
+
+    with max_depth=32, complex HRR (i think this is nonmixed, but can't remember. rerunning anyway.)
+
+    hrr_size, training_size, fscore, precision, recall, acc
+    64        1000           0.208   0.338      0.151   0.607
+    64        5000           0.346   0.407      0.300   0.610
+    64        10000          0.286   0.360      0.237   0.594
+    64        50000          0.140   0.279      0.093   0.606
+    64        -12000         0.594   0.700      0.515   0.758
+    256       1000           0.184   0.300      0.133   0.597
+    256       5000           0.224   0.252      0.201   0.521
+    256       10000          0.289   0.335      0.254   0.571
+    256       50000          0.276   0.396      0.212   0.619
+    256       -12000         0.522   0.589      0.468   0.706
+    1024      1000           0.237   0.370      0.174   0.615
+    1024      5000           0.264   0.318      0.225   0.569
+    1024      10000          0.252   0.284      0.226   0.539
+    """
+
+    params = dict(params)
+
+    print('Training XGB', hrr_size, training_size, params)
+
+    scaler, trainingX_scaled, trainingy = get_training_data(hrr_class, hrr_size, training_size)
+
+    model = xgboost.XGBClassifier()
+    model.set_params(**params)
+    model.fit(trainingX_scaled, trainingy)
+
+    return scaler, model
+
 def test_model(hrr_class, hrr_size, scaler, model):
     """
     Tests a model
@@ -320,18 +448,20 @@ def test_model(hrr_class, hrr_size, scaler, model):
     posacc = model.score(testXpos_scaled, testypos)
     negacc = model.score(testXneg_scaled, testyneg)
 
-    precision = posacc * len(testypos) / (posacc * len(testypos) + (1-negacc) * len(testyneg))
+    precision = 0 if posacc * len(testypos) == 0 else posacc * len(testypos) / (posacc * len(testypos) + (1-negacc) * len(testyneg))
     recall = posacc
-    fscore = 2 * precision * recall / (precision + recall)
+    fscore = 0 if precision * recall == 0 else 2 * precision * recall / (precision + recall)
 
     # print('fscore, precision, recall, acc')
     # print(fscore, precision, recall, acc)
     return fscore, precision, recall, acc
 
+params = tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))
 for model_train in [
-        train_lr,
-        train_pac,
+        # train_lr,
+        # train_pac,
         # train_svc,
+        train_xgb,
         ]:
     print('Training', model_train.__name__)
     print('hrr_size, training_size, fscore, precision, recall, acc')
@@ -349,7 +479,7 @@ for model_train in [
                 50000,
                 -12000,
                 ]:
-            scaler, model = model_train(hrr_size, training_size)
+            scaler, model = model_train(hrr_size, training_size, HRR.FlatTreeHRR, params)
             print(hrr_size, training_size,
                     *('{:0.3f}'.format(x)
                         for x in test_model(HRR.FlatTreeHRR, hrr_size, scaler, model)))

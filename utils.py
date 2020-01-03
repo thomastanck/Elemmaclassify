@@ -32,6 +32,30 @@ def active_persist_to_file(filename):
 
     return decorator
 
+def persist_to_file_strparams(filename):
+    def decorator(original_func):
+
+        @functools.wraps(original_func)
+        def new_func(*params, filename=filename):
+            # print('Loading', params, 'from', filename.format(*params))
+            try:
+                cache = pickle.load(open(filename.format(*params), 'rb'))
+            except (IOError, ValueError):
+                cache = {}
+
+            strparams = str(params)
+            if strparams not in cache:
+                cache[strparams] = original_func(*params)
+                try:
+                    pickle.dump(cache, open(filename.format(*params), 'wb'))
+                except:
+                    sys.stderr.write("Couldn't save {}!".format(filename.format(*params)))
+            return cache[strparams]
+
+        return new_func
+
+    return decorator
+
 def persist_to_file(filename):
     def decorator(original_func):
 
