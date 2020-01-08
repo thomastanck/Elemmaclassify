@@ -3,6 +3,7 @@ from AST import Var, Const, Dist, Func, Eq, Disj, Conj
 import numpy as np
 import functools
 import zlib
+import random
 
 def normalize(vec):
     return vec / np.linalg.norm(vec)
@@ -97,7 +98,7 @@ class HRR:
         self.randomise_distinct_objects = randomise_distinct_objects
 
         # Used for generating completely randomised ids
-        self.counter = 0
+        self.counter = random.randrange(0, 2000000000)
 
     def cache_clear(self):
         self.get_ground_vector.cache_clear()

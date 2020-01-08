@@ -32,7 +32,7 @@ def active_persist_to_file(filename):
 
     return decorator
 
-def persist_to_file_strparams(filename):
+def persist_to_file(filename, key=lambda *params: params):
     def decorator(original_func):
 
         @functools.wraps(original_func)
@@ -43,37 +43,15 @@ def persist_to_file_strparams(filename):
             except (IOError, ValueError):
                 cache = {}
 
-            strparams = str(params)
-            if strparams not in cache:
-                cache[strparams] = original_func(*params)
+            paramskey = key(*params)
+
+            if paramskey not in cache:
+                cache[paramskey] = original_func(*params)
                 try:
                     pickle.dump(cache, open(filename.format(*params), 'wb'))
                 except:
                     sys.stderr.write("Couldn't save {}!".format(filename.format(*params)))
-            return cache[strparams]
-
-        return new_func
-
-    return decorator
-
-def persist_to_file(filename):
-    def decorator(original_func):
-
-        @functools.wraps(original_func)
-        def new_func(*params, filename=filename):
-            # print('Loading', params, 'from', filename.format(*params))
-            try:
-                cache = pickle.load(open(filename.format(*params), 'rb'))
-            except (IOError, ValueError):
-                cache = {}
-
-            if params not in cache:
-                cache[params] = original_func(*params)
-                try:
-                    pickle.dump(cache, open(filename.format(*params), 'wb'))
-                except:
-                    sys.stderr.write("Couldn't save {}!".format(filename.format(*params)))
-            return cache[params]
+            return cache[paramskey]
 
         return new_func
 
@@ -103,6 +81,41 @@ def persist_iterator_to_file(filename):
                 with open(filename.format(*params), 'wb') as f:
                     # Save params as a check that the file is actually correct
                     pickle.dump(params, f)
+                    for obj in original_iterator():
+                        pickle.dump(obj, f)
+
+                # Now return the actual iterator with recursive call
+                yield from new_func(*params)
+
+        return new_func
+
+    return decorator
+
+def persist_iterator_to_file_strparams(filename):
+    def decorator(original_iterator):
+
+        @functools.wraps(original_iterator)
+        def new_func(*params, filename=filename):
+            # print('Loading', params, 'from', filename.format(*params))
+            strparams = str(params)
+            try:
+                with open(filename.format(*params), 'rb') as f:
+                    # Check that the file contains the correct contents
+                    pickled_params = pickle.load(f)
+                    if strparams != pickled_params:
+                        raise RuntimeError('Persisting iterators to file only works if every possible input is given a unique filename')
+
+                    while True:
+                        try:
+                            yield pickle.load(f)
+                        except EOFError:
+                            break
+
+            except (IOError, ValueError):
+                # Save the whole iterator first.
+                with open(filename.format(*params), 'wb') as f:
+                    # Save params as a check that the file is actually correct
+                    pickle.dump(strparams, f)
                     for obj in original_iterator():
                         pickle.dump(obj, f)
 
