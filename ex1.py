@@ -679,6 +679,7 @@ args = [ (hrr_size, hrr_args, index)
     ]
 print(sys.argv[1], 'out of', len(args))
 actualargs = args[int(sys.argv[1])]
+get = get_hrrs_pairs(HRR.FlatTreeHRR, args[0], args[1], args[2])
 
 ## Training/testing
 
