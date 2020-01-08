@@ -190,7 +190,7 @@ def process_problem_lemma_pair(args):
 def get_hrrs_pairs(hrr_class, hrr_size, hrr_args=dict(), index=0):
     import multiprocessing as mp
 
-    print('getting hrrs (pairs)')
+    print('getting hrrs (pairs)', hrr_class, hrr_size, hrr_args)
 
     pool = mp.Pool()
 
@@ -679,7 +679,8 @@ args = [ (hrr_size, hrr_args, index)
     ]
 print(sys.argv[1], 'out of', len(args))
 actualargs = args[int(sys.argv[1])]
-get = get_hrrs_pairs(HRR.FlatTreeHRR, args[0], args[1], args[2])
+print(actualargs)
+get = get_hrrs_pairs(HRR.FlatTreeHRR, actualargs[0], actualargs[1], actualargs[2])
 
 ## Training/testing
 
