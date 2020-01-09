@@ -37,18 +37,22 @@ def persist_to_file(filename, key=lambda *params: params):
 
         @functools.wraps(original_func)
         def new_func(*params, filename=filename):
-            # print('Loading', params, 'from', filename.format(*params))
+            thisfilename = filename.format(*(tuple(sorted(p.items())) if isinstance(p, dict) else p for p in params))
+            paramskey = key(*params)
+            # print('Loading', paramskey, 'from', thisfilename)
             try:
-                cache = pickle.load(open(filename.format(*params), 'rb'))
+                cache = pickle.load(open(thisfilename, 'rb'))
             except (IOError, ValueError):
+                # print('File not found')
                 cache = {}
 
-            paramskey = key(*params)
-
             if paramskey not in cache:
-                cache[paramskey] = original_func(*params)
+                # print('File found, but key not found. Available keys:', list(cache.keys()))
+                result = original_func(*params)
+                cache = pickle.load(open(thisfilename, 'rb'))
+                cache[paramskey] = result
                 try:
-                    pickle.dump(cache, open(filename.format(*params), 'wb'))
+                    pickle.dump(cache, open(thisfilename, 'wb'))
                 except:
                     sys.stderr.write("Couldn't save {}!".format(filename.format(*params)))
             return cache[paramskey]
