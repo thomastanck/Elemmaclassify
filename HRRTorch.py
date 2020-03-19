@@ -862,6 +862,42 @@ class LSTreeM(HRRTorch):
         self.disjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
         self.conjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
 
+        fixed_encodings = dict()
+        specifier_covariances = dict()
+        ground_vec_merge_ratios = dict()
+
+        specifier_dict = {
+                '!Var': 1,
+                '!Const': 1,
+                '!Dist': 1,
+                '!Func': 2,
+                '!Arg': 3,
+                '!Left': 1,
+                '!Right': 1,
+                '!DisjRole': 1,
+                }
+
+        for specifier, arity in specifier_dict.items():
+            fixed_enc = nn.Parameter(torch.Tensor(self.hrr_size))
+            fixed_encodings[specifier] = fixed_enc
+
+            for i in range(arity):
+                cov = nn.Parameter(torch.Tensor(self.hrr_size, self.hrr_size))
+                specifier_covariances['cov_{}_{}'.format(specifier, i)] = cov
+
+                merge_ratio = nn.Parameter(torch.Tensor(2))
+                ground_vec_merge_ratios['ground_{}_{}'.format(specifier, i)] = merge_ratio
+
+        self.fixed_encodings = nn.ParameterDict(fixed_encodings)
+        self.specifier_covariances = nn.ParameterDict(specifier_covariances)
+        self.ground_vec_merge_ratios = nn.ParameterDict(ground_vec_merge_ratios)
+
+
+        self.func_weights = nn.Parameter(torch.Tensor(3))
+        self.eq_weights = nn.Parameter(torch.Tensor(6))
+        self.disj_weights = nn.Parameter(torch.Tensor(3))
+        self.conj_weights = nn.Parameter(torch.Tensor(2))
+
     def forward(self, init_repr, input):
         return self.fold_term(init_repr, input)
 
@@ -882,22 +918,22 @@ class LSTreeM(HRRTorch):
                         ) & 0xffffffff)
             rs.randint(2)
 
-            specifier_vec = normalize_comp(
-                    self.specifier_variances['var_{}_{}'.format(top, parent.count(':'))] *
-                    torch.tensor(rs.standard_normal((2, self.hrr_size))).float())
+            specifier_vec = normalize(
+                    self.specifier_covariances['cov_{}_{}'.format(top, parent.count(':'))] @
+                    torch.tensor(rs.standard_normal(self.hrr_size)).float())
 
-            newvec = normalize_comp(
+            newvec = normalize(
                     self.ground_vec_merge_ratios['ground_{}_{}'.format(top, parent.count(':'))] @
                     torch.cat([
                         parentvec,
                         specifier_vec,
-                        ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+                        ]).reshape(-1, self.hrr_size))
 
             return newvec
         else:
             # Top level terms are fixed encodings
 
-            return normalize_comp(self.fixed_encodings[label])
+            return normalize(self.fixed_encodings[label])
 
     @functools.lru_cache(maxsize=8192)
     def fold_term(self, init_repr, term):
