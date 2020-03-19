@@ -1014,7 +1014,7 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     funcrandomness,
                     *vecs,
-                    torch.zeros(self.hrr_size)
+                    torch.zeros(self.hrr_size).detach()
                     ]).reshape((arity+3, 1, -1)))
 
         rnnoutput[1][0].detach_()
@@ -1027,7 +1027,7 @@ class LSTreeM(HRRTorch):
         return self.eqmodel(
                 torch.cat([
                     init_repr,
-                    torch.tensor([float(pos)]),
+                    torch.tensor([float(pos)]).detach(),
                     vec1,
                     vec2
                     ]))
@@ -1038,7 +1038,7 @@ class LSTreeM(HRRTorch):
                 torch.cat([
                     init_repr,
                     *vecs,
-                    torch.zeros(self.hrr_size)
+                    torch.zeros(self.hrr_size).detach()
                     ]).reshape((len(vecs)+2, 1, -1)))
 
         rnnoutput[1][0].detach_()
