@@ -127,7 +127,7 @@ def log_weights(writer, model, global_counter):
     for name, weight in model.named_parameters():
         writer.add_image('weight_{}'.format(name), utils.twodfy(weight), global_counter, dataformats='HW')
 
-def log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings):
+def log_experiment_info(save_dir, experiment_name, loss_func, git_hash, now, experimentsettings, trainsettings):
     info_filename = '{}/trainv1-{}-{}.info'.format(save_dir, git_hash, experiment_name)
     with open(info_filename, 'w') as f:
         json.dump({
@@ -200,7 +200,7 @@ def train(
 
     # Log experiment information
     if start_from_batch == 0:
-        log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsettings, trainsettings)
+        log_experiment_info(save_dir, experiment_name, loss_func, git_hash, now, experimentsettings, trainsettings)
 
     if rank == 0:
         writer = torchboard.SummaryWriter(log_dir='runs/trainv1-{}-{}'.format(short_git_hash, experiment_name))
