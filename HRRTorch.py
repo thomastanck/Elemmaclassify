@@ -982,7 +982,7 @@ class LSTreeM(HRRTorch):
         """ Output a HRR vector given function name and HRR vectors of its inputs """
         arity = len(vecs)
         funcrandomness = self.get_ground_vector(
-                ('!Func:{}:{}-Func-{}' if self.recursive_role else '!Func-{}:{}-Func-{}')
+                '!Func:{}:{}-Func-{}'
                 .format(arity, name, arity))
 
         return self.funcmodel(
