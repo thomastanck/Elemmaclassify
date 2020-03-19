@@ -865,6 +865,40 @@ class LSTreeM(HRRTorch):
     def forward(self, init_repr, input):
         return self.fold_term(init_repr, input)
 
+    @functools.lru_cache()
+    def get_ground_vector(self, label):
+        """ Deterministically generate a random vector from its label """
+
+        if ':' in label:
+            # This is an identifier
+
+            parent, _, specifier = label.rpartition(':')
+            top, _, _ = parent.partition(':')
+            parentvec = self.get_ground_vector(parent)
+
+            rs = np.random.RandomState(
+                    zlib.adler32(
+                        (str(self.hrr_size)+label).encode('utf-8')
+                        ) & 0xffffffff)
+            rs.randint(2)
+
+            specifier_vec = normalize_comp(
+                    self.specifier_variances['var_{}_{}'.format(top, parent.count(':'))] *
+                    torch.tensor(rs.standard_normal((2, self.hrr_size))).float())
+
+            newvec = normalize_comp(
+                    self.ground_vec_merge_ratios['ground_{}_{}'.format(top, parent.count(':'))] @
+                    torch.cat([
+                        parentvec,
+                        specifier_vec,
+                        ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
+
+            return newvec
+        else:
+            # Top level terms are fixed encodings
+
+            return normalize_comp(self.fixed_encodings[label])
+
     @functools.lru_cache(maxsize=8192)
     def fold_term(self, init_repr, term):
         """ Outputs a HRR vector given a FOF term """
