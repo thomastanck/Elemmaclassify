@@ -995,7 +995,7 @@ class LSTreeM(HRRTorch):
 
     def eq(self, init_repr, pos, vec1, vec2):
         """ Output a HRR vector given positivity of this literal (literals are equations), and HRR vectors of the left and right sides """
-        return self.eqmodel(torch.cat([init_repr, torch.tensor([int(pos)]), vec1, vec2]))
+        return self.eqmodel(torch.cat([init_repr, torch.tensor([float(pos)]), vec1, vec2]))
 
     def disj(self, init_repr, role, vecs):
         """ Output a HRR ector given role of this clause, and HRR vectors of all the literals """
