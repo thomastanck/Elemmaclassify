@@ -76,8 +76,10 @@ class DecoderComp_featurizer(nn.Module):
 
 class HRRClassifier(nn.Module):
 
-    def __init__(self, hrrmodel, featurizer, classifier):
+    def __init__(self, hrr_size, hrrmodel, featurizer, classifier):
         super(HRRClassifier, self).__init__()
+
+        self.hrr_size = hrr_size
 
         self.hrrmodel = hrrmodel
         self.featurizer = featurizer
@@ -86,8 +88,8 @@ class HRRClassifier(nn.Module):
     def forward(self, points):
         out = []
         for problem, lemma in points:
-            problemhrr = self.hrrmodel(torch.zeros(hrr_size), problem)
-            lemmahrr = self.hrrmodel(torch.zeros(hrr_size), lemma)
+            problemhrr = self.hrrmodel(torch.zeros(self.hrr_size), problem)
+            lemmahrr = self.hrrmodel(torch.zeros(self.hrr_size), lemma)
             features = self.featurizer(problemhrr, lemmahrr)
             out.append(self.classifier(features))
         return torch.cat(out)

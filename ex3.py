@@ -193,6 +193,7 @@ def make_model(experimentsettings):
             )
 
     return HRRClassifier.HRRClassifier(
+            hrr_size,
             hrrmodel,
             featurizer,
             classifier,
