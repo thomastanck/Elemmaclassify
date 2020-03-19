@@ -1015,7 +1015,12 @@ class LSTreeM(HRRTorch):
                     funcrandomness,
                     *vecs,
                     torch.zeros(self.hrr_size).detach()
-                    ]).reshape((arity+3, 1, -1)))
+                    ]).reshape((arity+3, 1, -1)),
+                (
+                    torch.zeros(self.hrr_size).detach(),
+                    torch.zeros(self.hrr_size).detach(),
+                    )
+                )
 
         rnnoutput[1][0].detach_()
         rnnoutput[1][1].detach_()
@@ -1039,7 +1044,12 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size).detach()
-                    ]).reshape((len(vecs)+2, 1, -1)))
+                    ]).reshape((len(vecs)+2, 1, -1)),
+                (
+                    torch.zeros(self.hrr_size).detach(),
+                    torch.zeros(self.hrr_size).detach(),
+                    )
+                )
 
         rnnoutput[1][0].detach_()
         rnnoutput[1][1].detach_()
@@ -1053,7 +1063,12 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((len(vecs)+2, 1, -1)))
+                    ]).reshape((len(vecs)+2, 1, -1)),
+                (
+                    torch.zeros(self.hrr_size).detach(),
+                    torch.zeros(self.hrr_size).detach(),
+                    )
+                )
 
         rnnoutput[1][0].detach_()
         rnnoutput[1][1].detach_()
