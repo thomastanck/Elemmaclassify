@@ -832,35 +832,35 @@ class FlatTreeHRRTorchCompRand(HRRTorch):
 class LSTreeM(HRRTorch):
     def __init__(
             self,
-            repr_size,
+            hrr_size,
             ):
         """
         hrr_size:                   Dimensionality of the HRR
         """
         super(LSTreeM, self).__init__(
-                repr_size,
+                hrr_size,
                 )
 
         self.varmodel = torch.nn.Sequential(
-            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Linear(hrr_size*2, hrr_size, True),
             torch.nn.Sigmoid()
             )
         self.constmodel = torch.nn.Sequential(
-            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Linear(hrr_size*2, hrr_size, True),
             torch.nn.Sigmoid()
             )
         self.distmodel = torch.nn.Sequential(
-            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Linear(hrr_size*2, hrr_size, True),
             torch.nn.Sigmoid()
             )
 
-        self.funcmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
+        self.funcmodel = torch.nn.LSTM(hrr_size, hrr_size, 1, True)
         self.eqmodel = torch.nn.Sequential(
-            torch.nn.Linear(repr_size*3 + 1, repr_size, True),
+            torch.nn.Linear(hrr_size*3 + 1, hrr_size, True),
             torch.nn.Sigmoid()
             )
-        self.disjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
-        self.conjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
+        self.disjmodel = torch.nn.LSTM(hrr_size, hrr_size, 1, True)
+        self.conjmodel = torch.nn.LSTM(hrr_size, hrr_size, 1, True)
 
         fixed_encodings = dict()
         specifier_covariances = dict()
@@ -990,7 +990,7 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     funcrandomness,
                     *vecs,
-                    torch.zeros(self.repr_size)
+                    torch.zeros(self.hrr_size)
                     ]).reshape((arity+3, 1, -1)))
 
     def eq(self, init_repr, pos, vec1, vec2):
@@ -1003,7 +1003,7 @@ class LSTreeM(HRRTorch):
                 torch.tensor([
                     init_repr,
                     *vecs,
-                    torch.zeros(self.repr_size)
+                    torch.zeros(self.hrr_size)
                     ]).reshape((len(vecs)+2, 1, -1)))
 
     def conj(self, init_repr, vecs):
@@ -1012,7 +1012,7 @@ class LSTreeM(HRRTorch):
                 torch.tensor([
                     init_repr,
                     *vecs,
-                    torch.zeros(self.repr_size)
+                    torch.zeros(self.hrr_size)
                     ]).reshape((len(vecs)+2, 1, -1)))
 
 
