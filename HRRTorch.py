@@ -986,7 +986,7 @@ class LSTreeM(HRRTorch):
                 .format(arity, name, arity))
 
         return self.funcmodel(
-                torch.tensor([
+                torch.cat([
                     init_repr,
                     funcrandomness,
                     *vecs,
@@ -1000,7 +1000,7 @@ class LSTreeM(HRRTorch):
     def disj(self, init_repr, role, vecs):
         """ Output a HRR ector given role of this clause, and HRR vectors of all the literals """
         return self.disjmodel(
-                torch.tensor([
+                torch.cat([
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
@@ -1009,7 +1009,7 @@ class LSTreeM(HRRTorch):
     def conj(self, init_repr, vecs):
         """ Output a HRR vector given HRR vectors of all the clauses """
         return self.conjmodel(
-                torch.tensor([
+                torch.cat([
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
