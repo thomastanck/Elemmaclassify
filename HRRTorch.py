@@ -862,6 +862,9 @@ class LSTreeM(HRRTorch):
         self.disjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
         self.conjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
 
+    def forward(self, init_repr, input):
+        return self.fold_term(init_repr, input)
+
     @functools.lru_cache(maxsize=8192)
     def fold_term(self, init_repr, term):
         """ Outputs a HRR vector given a FOF term """
@@ -875,24 +878,24 @@ class LSTreeM(HRRTorch):
             return self.func(
                     init_repr,
                     term.funcname,
-                    [ self.fold_term(x)
+                    [ self.fold_term(init_repr, x)
                       for x in term.args ])
         elif isinstance(term, Eq):
             return self.eq(
                 init_repr,
                 term.pos,
-                self.fold_term(term.t1),
-                self.fold_term(term.t2))
+                self.fold_term(init_repr, term.t1),
+                self.fold_term(init_repr, term.t2))
         elif isinstance(term, Disj):
             return self.disj(
                     init_repr,
                     term.role,
-                    [ self.fold_term(eq)
+                    [ self.fold_term(init_repr, eq)
                       for eq in term.eqs ])
         elif isinstance(term, Conj):
             return self.conj(
                     init_repr,
-                    [ self.fold_term(disj)
+                    [ self.fold_term(init_repr, disj)
                       for disj in term.disjs ])
 
     def var(self, init_repr, name):
