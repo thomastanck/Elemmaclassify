@@ -893,11 +893,6 @@ class LSTreeM(HRRTorch):
         self.ground_vec_merge_ratios = nn.ParameterDict(ground_vec_merge_ratios)
 
 
-        self.func_weights = nn.Parameter(torch.Tensor(3))
-        self.eq_weights = nn.Parameter(torch.Tensor(6))
-        self.disj_weights = nn.Parameter(torch.Tensor(3))
-        self.conj_weights = nn.Parameter(torch.Tensor(2))
-
     def forward(self, init_repr, input):
         return self.fold_term(init_repr, input)
 
@@ -970,24 +965,24 @@ class LSTreeM(HRRTorch):
 
     def var(self, init_repr, name):
         """ Output a HRR vector given a variable name """
-        randomness = self.get_ground_vector('Var:{}-Var'.format(name))
+        randomness = self.get_ground_vector('!Var:{}-Var'.format(name))
         return self.varmodel(torch.cat([init_repr, randomness]))
 
     def const(self, init_repr, name):
         """ Output a HRR vector given a constant name """
-        randomness = self.get_ground_vector('Const:{}-Const'.format(name))
+        randomness = self.get_ground_vector('!Const:{}-Const'.format(name))
         return self.constmodel(torch.cat([init_repr, randomness])) # Consider reusing varmodel
 
     def dist(self, init_repr, name):
         """ Output a HRR vector given a distinct object name """
-        randomness = self.get_ground_vector('Dist:{}-Dist'.format(name))
+        randomness = self.get_ground_vector('!Dist:{}-Dist'.format(name))
         return self.distmodel(torch.cat([init_repr, randomness])) # Consider reusing varmodel
 
     def func(self, init_repr, name, vecs):
         """ Output a HRR vector given function name and HRR vectors of its inputs """
         arity = len(vecs)
         funcrandomness = self.get_ground_vector(
-                ('Func:{}:{}-Func-{}' if self.recursive_role else 'Func-{}:{}-Func-{}')
+                ('!Func:{}:{}-Func-{}' if self.recursive_role else '!Func-{}:{}-Func-{}')
                 .format(arity, name, arity))
 
         return self.funcmodel(
