@@ -1017,8 +1017,8 @@ class LSTreeM(HRRTorch):
                     torch.zeros(self.hrr_size)
                     ]).reshape((arity+3, 1, -1)))
 
-        rnnoutput[1][0]._detach()
-        rnnoutput[1][1]._detach()
+        rnnoutput[1][0].detach_()
+        rnnoutput[1][1].detach_()
 
         return rnnoutput[0][-1,0,:]
 
@@ -1041,8 +1041,8 @@ class LSTreeM(HRRTorch):
                     torch.zeros(self.hrr_size)
                     ]).reshape((len(vecs)+2, 1, -1)))
 
-        rnnoutput[1][0]._detach()
-        rnnoutput[1][1]._detach()
+        rnnoutput[1][0].detach_()
+        rnnoutput[1][1].detach_()
 
         return rnnoutput[0][-1,0,:]
 
@@ -1055,8 +1055,8 @@ class LSTreeM(HRRTorch):
                     torch.zeros(self.hrr_size)
                     ]).reshape((len(vecs)+2, 1, -1)))
 
-        rnnoutput[1][0]._detach()
-        rnnoutput[1][1]._detach()
+        rnnoutput[1][0].detach_()
+        rnnoutput[1][1].detach_()
 
         return rnnoutput[0][-1,0,:]
 
