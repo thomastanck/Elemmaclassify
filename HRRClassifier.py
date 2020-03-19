@@ -86,8 +86,8 @@ class HRRClassifier(nn.Module):
     def forward(self, points):
         out = []
         for problem, lemma in points:
-            problemhrr = self.hrrmodel(torch.nn.zeros(hrr_size), problem)
-            lemmahrr = self.hrrmodel(torch.nn.zeros(hrr_size), lemma)
+            problemhrr = self.hrrmodel(torch.zeros(hrr_size), problem)
+            lemmahrr = self.hrrmodel(torch.zeros(hrr_size), lemma)
             features = self.featurizer(problemhrr, lemmahrr)
             out.append(self.classifier(features))
         return torch.cat(out)
