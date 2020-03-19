@@ -128,6 +128,13 @@ class HRRClassifierLoss(nn.Module):
                 self.model.hrrmodel.eq_weights,
                 self.model.hrrmodel.disj_weights,
                 self.model.hrrmodel.conj_weights,
+                self.model.hrrmodel.varmodel.parameters(),
+                self.model.hrrmodel.constmodel.parameters(),
+                self.model.hrrmodel.distmodel.parameters(),
+                self.model.hrrmodel.funcmodel.parameters(),
+                self.model.hrrmodel.eqmodel.parameters(),
+                self.model.hrrmodel.disjmodel.parameters(),
+                self.model.hrrmodel.conjmodel.parameters(),
                 ):
             sum_ = torch.sum(param)
             # Sum squared error = (sum - 1) ** 2
