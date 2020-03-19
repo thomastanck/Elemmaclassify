@@ -110,7 +110,7 @@ class HRRClassifierLoss(nn.Module):
         count = 0
         for param in (
                 *self.model.hrrmodel.fixed_encodings.values(),
-                *self.model.featurizer.decoders,
+                # *self.model.featurizer.decoders,
                 ):
             sqsum = torch.sum(param ** 2)
             # Sum squared error = (norm - 1) ** 2
