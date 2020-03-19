@@ -829,3 +829,122 @@ class FlatTreeHRRTorchCompRand(HRRTorch):
                     mergedvecs,
                     ]).reshape(-1, 2 * self.hrr_size)).reshape(2, self.hrr_size)
 
+class LSTreeM(HRRTorch):
+    def __init__(
+            self,
+            repr_size,
+            ):
+        """
+        hrr_size:                   Dimensionality of the HRR
+        """
+        super(LSTreeM, self).__init__(
+                repr_size,
+                )
+
+        self.varmodel = torch.nn.Sequential(
+            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Sigmoid()
+            )
+        self.constmodel = torch.nn.Sequential(
+            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Sigmoid()
+            )
+        self.distmodel = torch.nn.Sequential(
+            torch.nn.Linear(repr_size*2, repr_size, True),
+            torch.nn.Sigmoid()
+            )
+
+        self.funcmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
+        self.distmodel = torch.nn.Sequential(
+            torch.nn.Linear(repr_size*3 + 1, repr_size, True),
+            torch.nn.Sigmoid()
+            )
+        self.disjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
+        self.conjmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
+
+    @functools.lru_cache(maxsize=8192)
+    def fold_term(self, init_repr, term):
+        """ Outputs a HRR vector given a FOF term """
+        if isinstance(term, Var):
+            return self.var(init_repr, term.name)
+        elif isinstance(term, Const):
+            return self.const(init_repr, term.name)
+        elif isinstance(term, Dist):
+            return self.dist(init_repr, term.name)
+        elif isinstance(term, Func):
+            return self.func(
+                    init_repr,
+                    term.funcname,
+                    [ self.fold_term(x)
+                      for x in term.args ])
+        elif isinstance(term, Eq):
+            return self.eq(
+                init_repr,
+                term.pos,
+                self.fold_term(term.t1),
+                self.fold_term(term.t2))
+        elif isinstance(term, Disj):
+            return self.disj(
+                    init_repr,
+                    term.role,
+                    [ self.fold_term(eq)
+                      for eq in term.eqs ])
+        elif isinstance(term, Conj):
+            return self.conj(
+                    init_repr,
+                    [ self.fold_term(disj)
+                      for disj in term.disjs ])
+
+    def var(self, init_repr, name):
+        """ Output a HRR vector given a variable name """
+        randomness = self.get_ground_vector('Var:{}-Var'.format(name))
+        return self.varmodel(torch.cat([init_repr, randomness]))
+
+    def const(self, init_repr, name):
+        """ Output a HRR vector given a constant name """
+        randomness = self.get_ground_vector('Const:{}-Const'.format(name))
+        return self.constmodel(torch.cat([init_repr, randomness])) # Consider reusing varmodel
+
+    def dist(self, init_repr, name):
+        """ Output a HRR vector given a distinct object name """
+        randomness = self.get_ground_vector('Dist:{}-Dist'.format(name))
+        return self.distmodel(torch.cat([init_repr, randomness])) # Consider reusing varmodel
+
+    def func(self, init_repr, name, vecs):
+        """ Output a HRR vector given function name and HRR vectors of its inputs """
+        arity = len(vecs)
+        funcrandomness = self.get_ground_vector(
+                ('Func:{}:{}-Func-{}' if self.recursive_role else 'Func-{}:{}-Func-{}')
+                .format(arity, name, arity))
+
+        return self.funcmodel(
+                torch.tensor([
+                    init_repr,
+                    funcrandomness,
+                    *vecs,
+                    torch.zeros(self.repr_size)
+                    ]).reshape((arity+3, 1, -1)))
+
+    def eq(self, init_repr, pos, vec1, vec2):
+        """ Output a HRR vector given positivity of this literal (literals are equations), and HRR vectors of the left and right sides """
+        return self.eqmodel(torch.cat([init_repr, torch.tensor([int(pos)]), vec1, vec2]))
+
+    def disj(self, init_repr, role, vecs):
+        """ Output a HRR ector given role of this clause, and HRR vectors of all the literals """
+        return self.disjmodel(
+                torch.tensor([
+                    init_repr,
+                    *vecs,
+                    torch.zeros(self.repr_size)
+                    ]).reshape((len(vecs)+2, 1, -1)))
+
+    def conj(self, init_repr, vecs):
+        """ Output a HRR vector given HRR vectors of all the clauses """
+        return self.conjmodel(
+                torch.tensor([
+                    init_repr,
+                    *vecs,
+                    torch.zeros(self.repr_size)
+                    ]).reshape((len(vecs)+2, 1, -1)))
+
+

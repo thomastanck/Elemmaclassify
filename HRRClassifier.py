@@ -13,8 +13,16 @@ def MLP_classifier(feature_size, layer_sizes, nonlinearity=nn.LeakyReLU()):
     return model
 
 class Cat_featurizer(nn.Module):
+    def __init__(self, hrr_size):
+        super(Cat_featurizer, self).__init__()
+
+        self.output_size = hrr_size * 2
+
     def forward(self, problemhrr, lemmahrr):
         return torch.cat([problemhrr, lemmahrr])
+
+    def get_output_size(self):
+        return self.output_size
 
 class Decoder_featurizer(nn.Module):
     def __init__(self, hrr_size, num_decoders):

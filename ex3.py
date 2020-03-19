@@ -102,6 +102,7 @@ adam_experiments = [
 
         ]
 
+
 round2_experiments = []
 for batchsize in 16, 64, 256:
     for activation in 'LeakyReLU', 'Sigmoid':
@@ -133,7 +134,38 @@ for batchsize in 16, 64, 256:
 # Round 2 experiments (randomly keep 40 of them)
 round2_experiments = datautils.shuffle_by_hash(round2_experiments)[:40]
 
-experiments = model_experiments + adam_experiments + round2_experiments
+# Starts from index 80
+
+recnet_experiments = []
+for batchsize in [16]:#, 64, 256:
+    for activation in ['Sigmoid']:#'LeakyReLU', 'Sigmoid':
+        for repr_size in 16, 64, 128, 256:
+            for mlp_reg in 0.003, 0.001, 0.0003:
+                for num_classifier_layers in 2, 3:
+                    for LR in 1e-3, 3e-4, 1e-4:
+                        for hrr_class in ['LSTreeM']:
+                            recnet_experiments.append(
+                                ExperimentSettings(
+                                    'RecNet1-{}-B{}H{}L{}{}G{}LR{}'.format(
+                                        hrr_class, batchsize, repr_size, num_classifier_layers, activation, mlp_reg, LR),
+                                    batchsize,
+                                    hrr_class,
+                                    repr_size,
+                                    'unused',
+                                    num_classifier_layers,
+                                    64,
+                                    activation,
+                                    0.1,
+                                    0.1,
+                                    mlp_reg,
+                                    LR,
+                                    0.9,
+                                    0.999,
+                                    0))
+
+recnet_experiments = recnet_experiments # take all
+
+experiments = model_experiments + adam_experiments + round2_experiments + recnet_experiments
 
 def make_model(experimentsettings):
     hrr_size = experimentsettings.hrr_size
@@ -147,6 +179,9 @@ def make_model(experimentsettings):
     elif experimentsettings.hrr_class == 'FlatTreeHRRTorchComp':
         hrrmodel = HRRTorch.FlatTreeHRRTorchComp(hrr_size)
         featurizer = HRRClassifier.DecoderComp_featurizer(hrr_size, num_decoders)
+    elif experimentsettings.hrr_class == 'LSTreeM':
+        hrrmodel = HRRTorch.LSTreeM(hrr_size)
+        featurizer = HRRClassifier.Cat_featurizer(hrr_size)
     nonlinearity = {
             'Sigmoid': nn.Sigmoid(),
             'LeakyReLU': nn.LeakyReLU(),
