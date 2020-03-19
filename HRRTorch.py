@@ -1062,7 +1062,7 @@ class LSTreeM(HRRTorch):
                 torch.cat([
                     init_repr,
                     *vecs,
-                    torch.zeros(self.hrr_size)
+                    torch.zeros(self.hrr_size).detach()
                     ]).reshape((len(vecs)+2, 1, -1)),
                 (
                     torch.zeros((1, 1, self.hrr_size)).detach(),
