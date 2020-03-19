@@ -1009,13 +1009,18 @@ class LSTreeM(HRRTorch):
                 '!Func:{}:{}-Func-{}'
                 .format(arity, name, arity))
 
-        return self.funcmodel(
+        rnnoutput = self.funcmodel(
                 torch.cat([
                     init_repr,
                     funcrandomness,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((arity+3, 1, -1)))[0][-1,0,:]
+                    ]).reshape((arity+3, 1, -1)))
+
+        rnnoutput[1][0]._detach()
+        rnnoutput[1][1]._detach()
+
+        return rnnoutput[0][-1,0,:]
 
     def eq(self, init_repr, pos, vec1, vec2):
         """ Output a HRR vector given positivity of this literal (literals are equations), and HRR vectors of the left and right sides """
@@ -1029,20 +1034,30 @@ class LSTreeM(HRRTorch):
 
     def disj(self, init_repr, role, vecs):
         """ Output a HRR ector given role of this clause, and HRR vectors of all the literals """
-        return self.disjmodel(
+        rnnoutput = self.disjmodel(
                 torch.cat([
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((len(vecs)+2, 1, -1)))[0][-1,0,:]
+                    ]).reshape((len(vecs)+2, 1, -1)))
+
+        rnnoutput[1][0]._detach()
+        rnnoutput[1][1]._detach()
+
+        return rnnoutput[0][-1,0,:]
 
     def conj(self, init_repr, vecs):
         """ Output a HRR vector given HRR vectors of all the clauses """
-        return self.conjmodel(
+        rnnoutput = self.conjmodel(
                 torch.cat([
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((len(vecs)+2, 1, -1)))[0][-1,0,:]
+                    ]).reshape((len(vecs)+2, 1, -1)))
+
+        rnnoutput[1][0]._detach()
+        rnnoutput[1][1]._detach()
+
+        return rnnoutput[0][-1,0,:]
 
 
