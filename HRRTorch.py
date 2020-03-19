@@ -893,6 +893,30 @@ class LSTreeM(HRRTorch):
         self.ground_vec_merge_ratios = nn.ParameterDict(ground_vec_merge_ratios)
 
 
+        self.func_weights = nn.Parameter(torch.Tensor(3))
+        self.eq_weights = nn.Parameter(torch.Tensor(6))
+        self.disj_weights = nn.Parameter(torch.Tensor(3))
+        self.conj_weights = nn.Parameter(torch.Tensor(2))
+
+        for p in self.fixed_encodings.values():
+            nn.init.normal_(p)
+            with torch.no_grad():
+                p /= p.norm()
+        for p in self.specifier_covariances.values():
+            with torch.no_grad():
+                torch.eye(*p.shape, out=p, requires_grad=True)
+                p += torch.normal(0, 0.01, p.shape)
+        for p in [
+                *self.ground_vec_merge_ratios.values(),
+                self.func_weights,
+                self.eq_weights,
+                self.disj_weights,
+                self.conj_weights,
+                ]:
+            nn.init.uniform_(p)
+            with torch.no_grad():
+                p /= p.sum()
+
     def forward(self, init_repr, input):
         return self.fold_term(init_repr, input)
 
