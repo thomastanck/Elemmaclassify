@@ -991,7 +991,7 @@ class LSTreeM(HRRTorch):
                     funcrandomness,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((arity+3, 1, -1)))
+                    ]).reshape((arity+3, 1, -1)))[0][-1,0,:]
 
     def eq(self, init_repr, pos, vec1, vec2):
         """ Output a HRR vector given positivity of this literal (literals are equations), and HRR vectors of the left and right sides """
@@ -1010,7 +1010,7 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((len(vecs)+2, 1, -1)))
+                    ]).reshape((len(vecs)+2, 1, -1)))[0][-1,0,:]
 
     def conj(self, init_repr, vecs):
         """ Output a HRR vector given HRR vectors of all the clauses """
@@ -1019,6 +1019,6 @@ class LSTreeM(HRRTorch):
                     init_repr,
                     *vecs,
                     torch.zeros(self.hrr_size)
-                    ]).reshape((len(vecs)+2, 1, -1)))
+                    ]).reshape((len(vecs)+2, 1, -1)))[0][-1,0,:]
 
 
