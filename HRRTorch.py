@@ -855,7 +855,7 @@ class LSTreeM(HRRTorch):
             )
 
         self.funcmodel = torch.nn.LSTM(repr_size, repr_size, 1, True)
-        self.distmodel = torch.nn.Sequential(
+        self.eqmodel = torch.nn.Sequential(
             torch.nn.Linear(repr_size*3 + 1, repr_size, True),
             torch.nn.Sigmoid()
             )
