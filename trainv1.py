@@ -138,6 +138,7 @@ def log_experiment_info(save_dir, experiment_name, git_hash, now, experimentsett
             'train version': 'trainv1',
             }, f, indent=4, sort_keys=True)
 
+    short_git_hash = git_hash[:7]
     lossfunc_filename = '{}/trainv1-{}-{}.lossfunc'.format(save_dir, short_git_hash, experiment_name)
     torch.save(loss_func, lossfunc_filename)
 
