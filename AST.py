@@ -18,7 +18,7 @@ Conj = collections.namedtuple('Conj', 'disjs')
 
 def fold_term(term, fvar, fdist, fconst, fskolem, ffunc, feq, fdisj, fconj):
     fvar, fdist, fconst, fskolem, ffunc, feq, fdisj, fconj = map(
-            functools.lru_cache(maxsize=None),
+            functools.lru_cache(),
             [fvar, fdist, fconst, fskolem, ffunc, feq, fdisj, fconj])
 
     def _fold_term(term):
