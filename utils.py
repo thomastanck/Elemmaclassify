@@ -3,8 +3,25 @@ import pickle
 import functools
 import itertools
 import subprocess
+import shelve
 
 import numpy as np
+
+def persist_to_shelf(filename):
+    def decorator(original_func):
+        shelf = shelve.open(filename)
+
+        @functools.wraps(original_func)
+        def new_func(*params):
+            key = str(params)
+            try:
+                return shelf[key]
+            except:
+                val = original_func(*params)
+                shelf[key] = val
+                return val
+        return new_func
+    return decorator
 
 def active_persist_to_file(filename):
     def decorator(original_func):
