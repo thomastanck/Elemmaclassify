@@ -89,6 +89,8 @@ def get_dataset_multihrr(settings):
 
                 print('preproc done')
 
+    with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
+        with shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as problem_shelf:
             for pname, lname in pnamelnames:
                 yield (numpy.concatenate((problem_shelf[pname], lemma_shelf[pname+'/'+lname])), usefulness[pname][lname])
 
