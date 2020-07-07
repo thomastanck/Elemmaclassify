@@ -27,6 +27,7 @@ def get_cnftohrrs(settings):
 
 def process_problem_multihrr(args):
     settings, pname = args
+    print('working on', pname)
     problem = get_problem(pname)
     cnftohrrs = get_cnftohrrs(settings)
     return (pname,
@@ -35,6 +36,7 @@ def process_problem_multihrr(args):
 
 def process_lemma_multihrr(args):
     settings, pname, lname, lemma = args
+    print('working on', pname, lname)
     cnftohrrs = get_cnftohrrs(settings)
     return (pname,
             lname,
@@ -42,47 +44,51 @@ def process_lemma_multihrr(args):
                         for cnftohrr in cnftohrrs]))
 
 def get_dataset_multihrr(settings):
-    import multiprocessing
-
-    problemnames = set()
-    pnamelnames = list()
-    with open('E_conj/lemmas') as f:
-        for l in f:
-            name, lemma = l.split(':')
-            _, problemname, lemmaname = name.split('/')
-            problemnames.add(problemname)
-            pnamelnames.append((problemname, lemmaname))
-
-    problemslemmas = lemmadata.get_problemslemmas()
-    usefulness = lemmadata.get_usefulness()
-
-    with multiprocessing.Pool() as pool:
-        print('preproc lemmas')
-        with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
-            for i, (pname, lname, hrr) in enumerate(pool.imap_unordered(
-                    process_lemma_multihrr,
-                    ((settings, pname, lname, lemma)
-                        for (pname, lname, problem, lemma) in problemslemmas
-                        if pname+'/'+lname not in lemma_shelf),
-                    16)):
-                print(i, pname, lname)
-                lemma_shelf[pname+'/'+lname] = hrr
-
-        print('preproc problems')
+    with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
         with shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as problem_shelf:
-            for i, (pname, hrr) in enumerate(pool.imap_unordered(
-                    process_problem_multihrr,
-                    ((settings, pname)
-                        for pname in problemnames
-                        if pname not in problem_shelf),
-                    16)):
-                print(i, pname)
-                problem_shelf[pname] = hrr
+            if 'done' not in lemma_shelf or 'done' not in problem_shelf:
+                import multiprocessing
 
-        print('preproc done')
+                problemnames = set()
+                pnamelnames = list()
+                with open('E_conj/lemmas') as f:
+                    for l in f:
+                        name, lemma = l.split(':')
+                        _, problemname, lemmaname = name.split('/')
+                        problemnames.add(problemname)
+                        pnamelnames.append((problemname, lemmaname))
 
-    with shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as problem_shelf:
-        with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
+                problemslemmas = lemmadata.get_problemslemmas()
+                usefulness = lemmadata.get_usefulness()
+
+                if 'done' not in lemma_shelf:
+                    with multiprocessing.Pool() as pool:
+                        print('preproc lemmas')
+                        for i, (pname, lname, hrr) in enumerate(pool.imap_unordered(
+                                process_lemma_multihrr,
+                                ((settings, pname, lname, lemma)
+                                    for (pname, lname, problem, lemma) in problemslemmas
+                                    if pname+'/'+lname not in lemma_shelf),
+                                16)):
+                            print(i, pname, lname)
+                            lemma_shelf[pname+'/'+lname] = hrr
+                    lemma_shelf['done'] = True
+
+                if 'done' not in lemma_shelf:
+                    with multiprocessing.Pool() as pool:
+                        print('preproc problems')
+                        for i, (pname, hrr) in enumerate(pool.imap_unordered(
+                                process_problem_multihrr,
+                                ((settings, pname)
+                                    for pname in problemnames
+                                    if pname not in problem_shelf),
+                                16)):
+                            print(i, pname)
+                            problem_shelf[pname] = hrr
+                    problem_shelf['done'] = True
+
+                print('preproc done')
+
             for pname, lname in pnamelnames:
                 yield (numpy.concatenate((problem_shelf[pname], lemma_shelf[pname+'/'+lname])), usefulness[pname][lname])
 
