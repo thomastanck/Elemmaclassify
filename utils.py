@@ -34,7 +34,7 @@ def active_persist_to_file(filename):
             if cache is None:
                 try:
                     cache = pickle.load(open(filename, 'rb'))
-                except (IOError, OSError, ValueError):
+                except (IOError, FileNotFoundError, ValueError):
                     cache = {}
 
             if params not in cache:
@@ -59,7 +59,7 @@ def persist_to_file(filename, key=lambda *params: params):
             # print('Loading', paramskey, 'from', thisfilename)
             try:
                 cache = pickle.load(open(thisfilename, 'rb'))
-            except (IOError, OSError, ValueError):
+            except (IOError, FileNotFoundError, ValueError):
                 # print('File not found')
                 cache = {}
 
@@ -97,7 +97,7 @@ def persist_iterator_to_file(filename):
                         except EOFError:
                             break
 
-            except (IOError, OSError, ValueError):
+            except (IOError, FileNotFoundError, ValueError):
                 # Save the whole iterator first.
                 with open(filename.format(*params), 'wb') as f:
                     # Save params as a check that the file is actually correct
@@ -132,7 +132,7 @@ def persist_iterator_to_file_strparams(filename):
                         except EOFError:
                             break
 
-            except (IOError, OSError, ValueError):
+            except (IOError, FileNotFoundError, ValueError):
                 # Save the whole iterator first.
                 with open(filename.format(*params), 'wb') as f:
                     # Save params as a check that the file is actually correct
