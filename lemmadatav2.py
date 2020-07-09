@@ -103,7 +103,7 @@ class MultiHRRDataset1(torch.utils.data.Dataset):
         self.lemma_shelf = shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
         self.problem_shelf = shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
         self.usefulness = lemmadata.get_usefulness()
-        self.pln = lemmadata.get_problemslemmas()
+        self.pln = lemmadata.get_problemslemmas_names()
 
     def __enter__(self):
         return self
