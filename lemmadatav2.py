@@ -43,7 +43,7 @@ def process_lemma_multihrr(args):
             numpy.concatenate([cnftohrr.fold_term(lemma).to_real_vec()
                         for cnftohrr in cnftohrrs]))
 
-def get_dataset_multihrr(settings):
+def preprocess_dataset_multihrr(settings):
     with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
         with shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as problem_shelf:
             if 'done' not in lemma_shelf or 'done' not in problem_shelf:
@@ -89,11 +89,6 @@ def get_dataset_multihrr(settings):
 
                 print('preproc done')
 
-    with shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as lemma_shelf:
-        with shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs)) as problem_shelf:
-            for pname, lname in pnamelnames:
-                yield (numpy.concatenate((problem_shelf[pname], lemma_shelf[pname+'/'+lname])), usefulness[pname][lname])
-
 MultiHRRDataset1Settings = collections.namedtuple('MultiHRRDataset1Settings',
         '''
         hrr_size
@@ -105,10 +100,24 @@ class MultiHRRDataset1(torch.utils.data.Dataset):
             self,
             settings=MultiHRRDataset1Settings(1024, 16),
             ):
-        raise NotImplementedError()
+        self.lemma_shelf = shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
+        self.problem_shelf = shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
+        self.usefulness = lemmadata.get_usefulness()
+        self.pln = lemmadata.get_problemslemmas_names()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self):
+        self.close()
+
+    def close(self):
+        self.lemma_shelf.close()
+        self.problem_shelf.close()
 
     def __getitem__(self, idx):
-        return self.data[idx][0], int(self.data[idx][1])
+        pname, lname = self.pln[idx]
+        return numpy.concatenate([self.problem_shelf[pname], self.lemma_shelf[pname+'/'+lname]]), float(self.usefulness[pname][lname] < 1)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.pln)
