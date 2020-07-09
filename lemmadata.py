@@ -57,7 +57,7 @@ def get_problemslemmas_names():
             name, _ = l.split(':')
             _, problemname, lemmaname = name.split('/')
             names.append((problemname, lemmaname))
-    return names
+    return sorted(names)
 
 def convert_to_datapoints(problemlemmas, usefulness):
     for pname, lname, problem, lemma in problemlemmas:
