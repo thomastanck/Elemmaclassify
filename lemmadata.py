@@ -49,6 +49,16 @@ def get_problemslemmas():
         with open('E_conj/lemmas') as f:
             return pool.map(_process_problemslemmas, f, 32)
 
+@utils.persist_to_file('lemmadata/problemslemmas_names.pickle')
+def get_problemslemmas_names():
+    names = []
+    with open('E_conj/lemmas') as f:
+        for l in f:
+            name, _ = l.split(':')
+            _, problemname, lemmaname = name.split('/')
+            names.append((problemname, lemmaname))
+    return names
+
 def convert_to_datapoints(problemlemmas, usefulness):
     for pname, lname, problem, lemma in problemlemmas:
         yield ((problem, lemma), usefulness[pname][lname] < 1)
