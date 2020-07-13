@@ -122,12 +122,13 @@ class MultiHRRDataset1(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.pln)
 
-def dataset_to_Xy(dataset):
+def dataset_to_Xy(dataset, scaler=None):
     import sklearn.preprocessing as pre
     Xs, ys = [], []
     for X, y in dataset:
         Xs.append(X)
         ys.append(y)
-    scaler = pre.StandardScaler().fit(Xs)
+    if scaler is None:
+        scaler = pre.StandardScaler().fit(Xs)
     trainingX_scaled = scaler.transform(Xs)
     return scaler, Xs, ys
