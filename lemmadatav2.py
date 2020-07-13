@@ -130,5 +130,5 @@ def dataset_to_Xy(dataset, scaler=None):
         ys.append(y)
     if scaler is None:
         scaler = pre.StandardScaler().fit(Xs)
-    trainingX_scaled = scaler.transform(Xs)
+    Xs = scaler.transform(Xs)
     return scaler, Xs, ys
