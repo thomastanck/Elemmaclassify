@@ -135,8 +135,8 @@ class MultiHRRDataset1Truncated(torch.utils.data.Dataset):
         hrrs = numpy.split(hrr, 2*self.dataset.settings.num_hrrs)
         problemhrrs = hrrs[:self.dataset.settings.num_hrrs][:self.num_hrrs]
         lemmahrrs = hrrs[self.dataset.settings.num_hrrs:][:self.num_hrrs]
-        problemhrrs = [ hrr[:2*hrr_size] for hrr in problemhrrs ]
-        lemmahrrs = [ hrr[:2*hrr_size] for hrr in lemmahrrs ]
+        problemhrrs = [ hrr[:2*self.hrr_size] for hrr in problemhrrs ]
+        lemmahrrs = [ hrr[:2*self.hrr_size] for hrr in lemmahrrs ]
         return numpy.concatenate([*problemhrrs, *lemmahrrs]), y
 
     def __len__(self):
