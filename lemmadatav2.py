@@ -100,6 +100,8 @@ class MultiHRRDataset1(torch.utils.data.Dataset):
             self,
             settings=MultiHRRDataset1Settings(1024, 16),
             ):
+        self.settings = settings
+
         self.lemma_shelf = shelve.open('lemmadatav2/lemmas-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
         self.problem_shelf = shelve.open('lemmadatav2/problems-multihrr-{}-{}.shelf'.format(settings.hrr_size, settings.num_hrrs))
         self.usefulness = lemmadata.get_usefulness()
@@ -121,6 +123,24 @@ class MultiHRRDataset1(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.pln)
+
+class MultiHRRDataset1Truncated(torch.utils.data.Dataset):
+    def __init__(self, dataset, hrr_size, num_hrrs):
+        self.dataset = dataset
+        self.hrr_size = hrr_size
+        self.num_hrrs = num_hrrs
+
+    def __getitem__(self, idx):
+        hrr, y = self.dataset[idx]
+        hrrs = numpy.split(hrr, 2*self.dataset.settings.num_hrrs)
+        problemhrrs = hrrs[:self.dataset.settings.num_hrrs][:self.num_hrrs]
+        lemmahrrs = hrrs[self.dataset.settings.num_hrrs:][:self.num_hrrs]
+        problemhrrs = [ hrr[:2*hrr_size] for hrr in problemhrrs ]
+        lemmahrrs = [ hrr[:2*hrr_size] for hrr in lemmahrrs ]
+        return numpy.concatenate([*problemhrrs, *lemmahrrs]), y
+
+    def __len__(self):
+        return len(self.dataset)
 
 def dataset_to_Xy(dataset, scaler=None):
     import sklearn.preprocessing as pre
