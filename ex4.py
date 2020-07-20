@@ -114,18 +114,18 @@ for shuffle in [False, True]:
             print('Training', model_train.__name__, 'mixed test/train' if shuffle else 'nonmixed test/train', 'nonweighted')
             print('hrr_size, training_size, acc')
             for num_hrrs, hrr_size in [
-                    (2, 16),
-                    (2, 32),
-                    (2, 64),
-                    (2, 256),
+                    # (2, 16),
+                    # (2, 32),
+                    # (2, 64),
+                    # (2, 256),
                     (2, 1024),
-                    (8, 16),
-                    (8, 32),
-                    (8, 64),
+                    # (8, 16),
+                    # (8, 32),
+                    # (8, 64),
                     (8, 256),
-                    (16, 16),
-                    (16, 32),
-                    (16, 64),
+                    # (16, 16),
+                    # (16, 32),
+                    # (16, 64),
                     (16, 128),
                     ]:
                 for training_size in [
