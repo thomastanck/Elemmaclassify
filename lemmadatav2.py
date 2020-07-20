@@ -151,4 +151,4 @@ def dataset_to_Xy(dataset, scaler=None):
     if scaler is None:
         scaler = pre.StandardScaler().fit(Xs)
     Xs = scaler.transform(Xs)
-    return scaler, Xs, ys
+    return scaler, numpy.array(Xs), numpy.array(ys)
