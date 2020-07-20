@@ -129,12 +129,12 @@ for shuffle in [False, True]:
                     (16, 128),
                     ]:
                 for training_size in [
-                        100,
-                        300,
+                        # 100,
+                        # 300,
                         1000,
-                        5000,
+                        # 5000,
                         10000,
-                        50000,
+                        # 50000,
                         -12000,
                         ]:
                     scaler, model = model_train(hrr_size, num_hrrs, training_size, shuffle, params)
