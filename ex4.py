@@ -50,7 +50,7 @@ def train_xgb(
     print('Training XGB', hrr_size, num_hrrs, training_size, shuffle, params)
 
     origdataset = lemmadatav2.MultiHRRDataset1()
-    truncdataset = lemmadatav2.MultiHRRDataste1Truncated(origdataset, hrr_size, num_hrrs)
+    truncdataset = lemmadatav2.MultiHRRDataset1Truncated(origdataset, hrr_size, num_hrrs)
     trainingdataset = get_train_dataset(truncdataset, shuffle, training_size)
 
     # scaler, trainingX_scaled, trainingy = get_training_data(hrr_class, hrr_size, training_size)
@@ -69,7 +69,7 @@ def test_model(hrr_class, hrr_size, scaler, model, shuffle, num_hrrs, hrr_args):
     """
 
     origdataset = lemmadatav2.MultiHRRDataset1()
-    truncdataset = lemmadatav2.MultiHRRDataste1Truncated(origdataset, hrr_size, num_hrrs)
+    truncdataset = lemmadatav2.MultiHRRDataset1Truncated(origdataset, hrr_size, num_hrrs)
     testdataset = get_test_dataset(truncdataset, shuffle)
 
     # scaler, trainingX_scaled, trainingy = get_training_data(hrr_class, hrr_size, training_size)
