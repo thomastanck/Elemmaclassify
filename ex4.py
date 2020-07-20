@@ -79,7 +79,7 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 
     # print('fscore, precision, recall, acc')
     # print(fscore, precision, recall, acc)
-    return acc
+    return (acc,)
 
 ## Preprocessing
 
