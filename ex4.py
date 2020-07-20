@@ -63,7 +63,7 @@ def train_xgb(
 
     return scaler, model
 
-def test_model(hrr_class, hrr_size, scaler, model, shuffle, num_hrrs, hrr_args):
+def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
     """
     Tests a model
     """
@@ -140,5 +140,5 @@ for shuffle in [False, True]:
                     scaler, model = model_train(hrr_size, num_hrrs, training_size, shuffle, params)
                     print(num_hrrs, hrr_size, training_size,
                             *('{:0.3f}'.format(x)
-                                for x in test_model(HRR.FlatTreeHRR, hrr_size, scaler, model, shuffle, num_hrrs, hrr_args)))
+                                for x in test_model(hrr_size, num_hrrs, shuffle, scaler, model)))
             print()
