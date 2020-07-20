@@ -73,7 +73,7 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
     testdataset = get_test_dataset(truncdataset, shuffle)
 
     # scaler, trainingX_scaled, trainingy = get_training_data(hrr_class, hrr_size, training_size)
-    _, testX_scaled, testy = lemmadatav2.dataset_to_Xy(trainingdataset, scaler)
+    _, testX_scaled, testy = lemmadatav2.dataset_to_Xy(testdataset, scaler)
 
     acc = model.score(testX_scaled, testy)
 
