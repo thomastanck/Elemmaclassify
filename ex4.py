@@ -131,9 +131,9 @@ for shuffle in [True, False]:
                 for training_size in [
                         # 100,
                         # 300,
-                        # 1000,
+                        1000,
                         # 5000,
-                        # 10000,
+                        10000,
                         # 50000,
                         -12000,
                         ]:
