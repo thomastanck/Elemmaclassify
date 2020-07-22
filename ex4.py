@@ -135,9 +135,9 @@ for shuffle in [True, False]:
                         # 300,
                         1000,
                         # 5000,
-                        # 10000,
+                        10000,
                         # 50000,
-                        # -12000,
+                        -12000,
                         ]:
                     scaler, model = model_train(hrr_size, num_hrrs, training_size, shuffle, params)
                     print(num_hrrs, hrr_size, training_size,
