@@ -124,7 +124,7 @@ for shuffle in [True, False]:
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, class_weight={False: 1, True: 10}).get_params().items())))),
             ]:
-            print('Training', model_train.__name__, 'mixed test/train' if shuffle else 'nonmixed test/train', 'nonweighted')
+            print('Training', model_train.__name__, 'mixed test/train' if shuffle else 'nonmixed test/train', 'nonweighted', params)
             print('hrr_size, training_size, acc')
             for num_hrrs, hrr_size in [
                     # (2, 16),
