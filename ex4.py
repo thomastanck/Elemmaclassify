@@ -110,8 +110,16 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 
 ## Training/testing
 
-for shuffle in [False, True]:
+for shuffle in [False]:
     for model_train, params in [
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=1).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=2).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=3).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=4).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=5).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=10).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=20).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=50).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=1).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=2).get_params().items())))),
@@ -133,15 +141,15 @@ for shuffle in [False, True]:
                     (2, 32),
                     # (2, 64),
                     # (2, 256),
-                    # (2, 1024),
+                    (2, 1024),
                     # (8, 16),
                     # (8, 32),
                     # (8, 64),
                     # (8, 256),
                     # (16, 16),
-                    # (16, 32),
+                    (16, 32),
                     # (16, 64),
-                    # (16, 128),
+                    (16, 128),
                     ]:
                 for training_size in [
                         100,
