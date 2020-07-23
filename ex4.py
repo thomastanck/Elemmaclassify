@@ -110,7 +110,7 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 
 ## Training/testing
 
-for shuffle in [True, False]:
+for shuffle in [False, True]:
     for model_train, params in [
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=1).get_params().items())))),
