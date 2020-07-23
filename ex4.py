@@ -21,16 +21,20 @@ def get_shuf_ind(n):
     return l
 
 def get_train_dataset(dataset, shuf, training_size):
-    if shuf:
+    if shuf == True:
         ind = get_shuf_ind(122356)[:training_size]
-    else:
+    elif shuf == False:
         ind = range(122356)[:training_size]
+    elif shuf == 'postshuf':
+        ind = get_shuf_ind(range(122356-12000))[:training_size]
     return torch.utils.data.Subset(dataset, ind)
 
 def get_test_dataset(dataset, shuf):
-    if shuf:
+    if shuf == True:
         ind = get_shuf_ind(122356)[-12000:]
-    else:
+    elif shuf == False:
+        ind = range(122356)[-12000:]
+    elif shuf == 'postshuf':
         ind = range(122356)[-12000:]
     return torch.utils.data.Subset(dataset, ind)
 
@@ -109,6 +113,9 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 for shuffle in [True, False]:
     for model_train, params in [
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=10).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=20).get_params().items())))),
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=50).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
