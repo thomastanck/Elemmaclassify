@@ -110,8 +110,8 @@ for shuffle in [True, False]:
     for model_train, params in [
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, class_weight={False: 1, True: 10}).get_params().items())))),
             ]:
             print('Training', model_train.__name__, 'mixed test/train' if shuffle else 'nonmixed test/train', 'nonweighted')
@@ -121,23 +121,23 @@ for shuffle in [True, False]:
                     (2, 32),
                     # (2, 64),
                     # (2, 256),
-                    (2, 1024),
+                    # (2, 1024),
                     # (8, 16),
-                    (8, 32),
+                    # (8, 32),
                     # (8, 64),
-                    (8, 256),
+                    # (8, 256),
                     # (16, 16),
-                    (16, 32),
+                    # (16, 32),
                     # (16, 64),
-                    (16, 128),
+                    # (16, 128),
                     ]:
                 for training_size in [
-                        # 100,
-                        # 300,
+                        100,
+                        300,
                         1000,
-                        # 5000,
+                        5000,
                         10000,
-                        # 50000,
+                        50000,
                         -12000,
                         ]:
                     scaler, model = model_train(hrr_size, num_hrrs, training_size, shuffle, params)
