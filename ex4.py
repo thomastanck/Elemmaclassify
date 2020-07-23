@@ -108,6 +108,7 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 
 for shuffle in [True, False]:
     for model_train, params in [
+            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
             (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
@@ -120,15 +121,15 @@ for shuffle in [True, False]:
                     (2, 32),
                     # (2, 64),
                     # (2, 256),
-                    # (2, 1024),
+                    (2, 1024),
                     # (8, 16),
                     (8, 32),
                     # (8, 64),
-                    # (8, 256),
+                    (8, 256),
                     # (16, 16),
                     (16, 32),
                     # (16, 64),
-                    # (16, 128),
+                    (16, 128),
                     ]:
                 for training_size in [
                         # 100,
