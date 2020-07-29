@@ -12,6 +12,7 @@ import sklearn as sk
 import sklearn.svm as svm
 import sklearn.preprocessing as pre
 import sklearn.linear_model as lm
+import sklearn.neighbors as skneighbors
 
 import xgboost
 
@@ -67,6 +68,35 @@ def train_xgb(
 
     return scaler, model
 
+@utils.persist_to_file('ex4data/knnweights-{}.pickle', key=lambda *params: str(tuple(tuple(sorted(p.items())) if isinstance(p, dict) else p for p in params)))
+def train_knn(
+        hrr_size=1024,
+        num_hrrs=16,
+        training_size=-12000,
+        shuffle=False,
+        params=tuple(sorted(list(skneighbors.KNeighborsClassifier().get_params().items())))):
+    """
+    Trains a kNN classifier
+    """
+
+    params = dict(params)
+
+    print('Training kNN', hrr_size, num_hrrs, training_size, shuffle, params)
+
+    origdataset = lemmadatav2.MultiHRRDataset1()
+    truncdataset = lemmadatav2.MultiHRRDataset1Truncated(origdataset, hrr_size, num_hrrs)
+    trainingdataset = get_train_dataset(truncdataset, shuffle, training_size)
+
+    # scaler, trainingX_scaled, trainingy = get_training_data(hrr_class, hrr_size, training_size)
+    scaler, trainingX_scaled, trainingy = lemmadatav2.dataset_to_Xy(trainingdataset)
+
+    model = skneighbors.KNeighborsClassifier()
+    model.set_params(**params)
+    model.set_params(n_jobs=24)
+    model.fit(trainingX_scaled, trainingy)
+
+    return scaler, model
+
 def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
     """
     Tests a model
@@ -112,35 +142,38 @@ def test_model(hrr_size, num_hrrs, shuffle, scaler, model):
 
 for shuffle in [False]:
     for model_train, params in [
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=1).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=2).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=3).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=4).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=5).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=10).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=20).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=50).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=1).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=2).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=3).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=4).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=5).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=10).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=20).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=50).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=1).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=2).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=3).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=4).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=5).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=10).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=20).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=50).get_params().items())))),
-            (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=1).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=2).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=3).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=4).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=5).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=10).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=20).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4, n_estimators=50).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=4).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=1).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=2).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=3).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=4).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=5).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=10).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=20).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8, n_estimators=50).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=8).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=1).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=2).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=3).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=4).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=5).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=10).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=20).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, n_estimators=50).get_params().items())))),
+            # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=128).get_params().items())))),
             # (train_xgb, tuple(sorted(list(xgboost.XGBClassifier(max_depth=32, class_weight={False: 1, True: 10}).get_params().items())))),
+            (train_knn, tuple(sorted(list(sk.neighbors.KNeighborsClassifier(n_neighbors=2).get_params().items())))),
+            (train_knn, tuple(sorted(list(sk.neighbors.KNeighborsClassifier(n_neighbors=5).get_params().items())))),
+            (train_knn, tuple(sorted(list(sk.neighbors.KNeighborsClassifier(n_neighbors=10).get_params().items())))),
             ]:
             print('Training', model_train.__name__, 'mixed test/train' if shuffle else 'nonmixed test/train', 'nonweighted', params)
             print('hrr_size, training_size, acc')
